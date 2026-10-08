@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>SAP RAP managed 시나리오 구현</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>SAP RAP managed 시나리오 구현</h1>
+<p>Fiori 화면 없이 OData V4 Web API로 데이터를 받는 managed 시나리오를 만들었다. 테이블부터 단건 POST, 메시지 반환, 커스텀 Action 다건 수신까지 개발 순서대로 정리했다.</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="개발 단계"><ol>
+<li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li>
+<li><a href="#step1"><span class="num">1</span><span class="lbl">테이블 설계</span></a></li>
+<li><a href="#step2"><span class="num">2</span><span class="lbl">R 뷰 어노테이션</span></a></li>
+<li><a href="#step3"><span class="num">3</span><span class="lbl">BDEF 작성</span></a></li>
+<li><a href="#step4"><span class="num">4</span><span class="lbl">서비스 노출</span></a></li>
+<li><a href="#step5"><span class="num">5</span><span class="lbl">POST 호출 테스트</span></a></li>
+<li><a href="#step6"><span class="num">6</span><span class="lbl">SAP__Messages</span></a></li>
+<li><a href="#step7"><span class="num">7</span><span class="lbl">다건 Action</span></a></li>
+<li><a href="#trouble"><span class="num">8</span><span class="lbl">막혔던 지점 정리</span></a></li>
+</ol></nav>
+<main>
+
+<section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2>
+<ul class="pts">
+<li>Draft 없는 managed 시나리오다. UUID 키 채번과 관리 필드 5개를 프레임워크가 자동으로 채운다.</li>
+<li>단건은 <code>create</code>로 받고, 다건은 static action(deep parameter)으로 한 번에 받는다.</li>
+<li>개발 순서는 테이블, R 뷰, BDEF, behavior pool, 서비스 정의/바인딩, 호출 테스트다.</li>
+</ul>
+<ol class="flow" aria-label="처리 흐름">
+<li><b>외부 시스템</b><span>POST / Action 호출</span></li>
+<li><b>Service Binding</b><span>OData V4 Web API</span></li>
+<li><b>BDEF (managed)</b><span>create, importFlights</span></li>
+<li><b>프레임워크 save</b><span>채번, 관리 필드, 저장</span></li>
+<li><b>응답</b><span>201 + SAP__Messages</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>종류</th><th>이름</th><th>역할</th></tr></thead><tbody>
+<tr><td>테이블</td><td><code>ztflights_log</code></td><td>저장 테이블 (이름은 예시, 실제 이름으로 교체)</td></tr>
+<tr><td>CDS R 뷰</td><td><code>YHL2609R_001</code></td><td>루트 뷰 엔티티, 관리 필드 어노테이션</td></tr>
+<tr><td>BDEF</td><td><code>YHL2609R_001</code></td><td>managed, strict(2), lock master</td></tr>
+<tr><td>Behavior Pool</td><td><code>zbp_yhl2609r_001</code></td><td>determination, action 구현</td></tr>
+<tr><td>Abstract Entity</td><td><code>YHL2609A_FLT_*</code></td><td>Action 입력/결과 구조</td></tr>
+<tr><td>Abstract BDEF</td><td><code>YHL2609A_FLT_*</code></td><td>deep 구조의 계층 선언</td></tr>
+<tr><td>Service</td><td><code>YHL2609A001U_01</code></td><td>서비스 정의 / OData V4 Web API 바인딩</td></tr>
+</tbody></table></div></section>
+
+<section id="step1" class="step"><span class="badge" aria-hidden="true">1</span><h2>테이블 설계</h2>
+<ul class="pts">
+<li>키는 <code>SYSUUID_X16</code> (RAW 16)이어야 <code>numbering : managed</code>가 동작한다. <code>SMI_UUID</code>, <code>SYSUUID_C32</code> 같은 CHAR 타입은 안 된다.</li>
+<li>관리 필드는 <code>abp_*</code> 계열 데이터 엘리먼트를 써야 자동 채움이 맞물린다.</li>
+<li>API 전용이라 draft 테이블, <code>total etag</code>는 필요 없다. 관리 필드와 etag 필드는 선택 사항이다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">ztflights_log.tabl.asddls</span><span class="cnote">테이블 정의 (필드는 업무에 맞게 조정)</span><button type="button" class="copy" aria-label="ztflights_log.tabl.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span> : <span class="ts">'Flights API - Managed'</span>
+<span class="ta">@AbapCatalog.tableCategory</span> : <span class="ta">#TRANSPARENT</span>
+<span class="ta">@AbapCatalog.deliveryClass</span> : <span class="ta">#A</span>
+<span class="ta">@AbapCatalog.dataMaintenance</span> : <span class="ta">#RESTRICTED</span>
+<span class="tk">define</span> <span class="tk">table</span> ztflights_log {
+  <span class="tk">key</span> client                : abap.clnt <span class="tk">not null</span>;
+  <span class="tk">key</span> zlogkey               : sysuuid_x16 <span class="tk">not null</span>;
+  carrid                : s_carr_id;
+  connid                : s_conn_id;
+  countryfr             : land1;
+  cityfrom              : s_from_cit;
+  airpfrom              : s_fromairp;
+  countryto             : land1;
+  cityto                : s_to_city;
+  airpto                : s_toairp;
+  fltime                : s_fltime;
+  deptime               : s_dep_time;
+  arrtime               : s_arr_time;
+  distance              : s_distance;
+  distid                : s_distid;
+  fltype                : s_fltype;
+  period                : s_period;
+  created_by            : abp_creation_user;
+  created_at            : abp_creation_tstmpl;
+  local_last_changed_by : abp_locinst_lastchange_user;
+  local_last_changed_at : abp_locinst_lastchange_tstmpl;
+  last_changed_at       : abp_lastchange_tstmpl;
+}</code></pre>
+</figure></section>
+
+<section id="step2" class="step"><span class="badge" aria-hidden="true">2</span><h2>R 뷰 어노테이션</h2>
+<ul class="pts">
+<li>관리 필드는 필드 이름이 아니라 <code>@Semantics</code> 어노테이션으로 프레임워크가 알아본다.</li>
+<li>어노테이션은 BDEF가 붙은 R 뷰에 달아야 한다. Projection 뷰에는 달지 않는다.</li>
+<li>한 필드에는 어노테이션 하나만 단다. <code>localInstanceLastChangedAt</code>은 etag용, <code>lastChangedAt</code>은 루트 전체 변경용이다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">YHL2609R_001.ddls.asddls</span><span class="cnote">R 뷰 (관리 필드 부분)</span><button type="button" class="copy" aria-label="YHL2609R_001.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="tk">define</span> <span class="tk">root</span> <span class="tk">view</span> <span class="tk">entity</span> YHL2609R_001
+  <span class="tk">as</span> <span class="tk">select</span> <span class="tk">from</span> ztflights_log
+{
+  <span class="tk">key</span> zlogkey                 <span class="tk">as</span> Zlogkey,
+      carrid                  <span class="tk">as</span> Carrid,
+      <span class="tc">" ... 업무 필드 생략 ...</span>
+
+      <span class="ta">@Semantics.user.createdBy</span>: <span class="tk">true</span>
+      created_by              <span class="tk">as</span> CreatedBy,
+      <span class="ta">@Semantics.systemDateTime.createdAt</span>: <span class="tk">true</span>
+      created_at              <span class="tk">as</span> CreatedAt,
+      <span class="ta">@Semantics.user.localInstanceLastChangedBy</span>: <span class="tk">true</span>
+      local_last_changed_by   <span class="tk">as</span> LocalLastChangedBy,
+      <span class="ta">@Semantics.systemDateTime.localInstanceLastChangedAt</span>: <span class="tk">true</span>
+      local_last_changed_at   <span class="tk">as</span> LocalLastChangedAt,
+      <span class="ta">@Semantics.systemDateTime.lastChangedAt</span>: <span class="tk">true</span>
+      last_changed_at         <span class="tk">as</span> LastChangedAt
+}</code></pre>
+</figure></section>
+
+<section id="step3" class="step"><span class="badge" aria-hidden="true">3</span><h2>BDEF 작성</h2>
+<ul class="pts">
+<li><code>strict ( 2 )</code>에서는 루트에 <code>lock master</code>와 <code>authorization master</code>가 필요하다.</li>
+<li><code>mapping for ... corresponding</code>은 이름이 같은 필드(대소문자 무시)만 자동으로 짝짓는다. 언더스코어가 있는 관리 필드 5개는 직접 매핑해야 한다.</li>
+<li>매핑에서 빠진 필드는 DB에 저장되지 않는다. 컬럼을 추가할 때 같이 확인한다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">YHL2609R_001.bdef.asbdef</span><span class="cnote">managed, Draft 없음</span><button type="button" class="copy" aria-label="YHL2609R_001.bdef.asbdef 복사">복사</button></figcaption>
+<pre><code><span class="tk">managed</span> <span class="tk">implementation</span> <span class="tk">in</span> <span class="tk">class</span> zbp_yhl2609r_001 <span class="tk">unique</span>;
+<span class="tk">strict</span> ( <span class="tn">2</span> );
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> YHL2609R_001 <span class="tk">alias</span> FlightsManaged
+<span class="tk">persistent</span> <span class="tk">table</span> ztflights_log
+<span class="tk">lock</span> <span class="tk">master</span>
+<span class="tk">authorization</span> <span class="tk">master</span> ( <span class="tk">global</span> )
+<span class="tk">etag</span> <span class="tk">master</span> LocalLastChangedAt
+{
+  <span class="tk">create</span>;
+  <span class="tk">update</span>;
+  <span class="tk">delete</span>;
+
+  <span class="tk">field</span> ( <span class="tk">numbering</span> : <span class="tk">managed</span>, <span class="tk">readonly</span> ) Zlogkey;
+  <span class="tk">field</span> ( <span class="tk">readonly</span> ) CreatedBy, CreatedAt,
+                     LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
+
+  <span class="tk">mapping</span> <span class="tk">for</span> ztflights_log <span class="tk">corresponding</span>
+  {
+    CreatedBy          = created_by;
+    CreatedAt          = created_at;
+    LocalLastChangedBy = local_last_changed_by;
+    LocalLastChangedAt = local_last_changed_at;
+    LastChangedAt      = last_changed_at;
+  }
+}</code></pre>
+</figure></section>
+
+<section id="step4" class="step"><span class="badge" aria-hidden="true">4</span><h2>Behavior Pool과 서비스 노출</h2>
+<ul class="pts">
+<li>BDEF에서 Quick Fix(Ctrl+1)로 behavior pool 클래스를 만든다. <code>authorization master ( global )</code>이라 <code>get_global_authorizations</code>가 필요하고, 비워둬도 된다.</li>
+<li>서비스 바인딩은 UI 타입이 아니라 <strong>OData V4 - Web API</strong>로 만든다.</li>
+<li>BDEF를 바꾸면 재활성화 후 서비스 바인딩을 Unpublish / Publish 한다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">zbp_yhl2609r_001.clas.locals_imp.abap</span><span class="cnote">Local Types (뼈대)</span><button type="button" class="copy" aria-label="zbp_yhl2609r_001.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">class</span> lhc_flightsmanaged <span class="tk">definition</span> <span class="tk">inheriting</span> <span class="tk">from</span> cl_abap_behavior_handler.
+  <span class="tk">private</span> <span class="tk">section</span>.
+    <span class="tk">methods</span> get_global_authorizations <span class="tk">for</span> <span class="tk">global</span> <span class="tk">authorization</span>
+      <span class="tk">importing</span> <span class="tk">request</span> requested_authorizations <span class="tk">for</span> flightsmanaged
+      <span class="tk">result</span> result.
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lhc_flightsmanaged <span class="tk">implementation</span>.
+  <span class="tk">method</span> get_global_authorizations.
+  <span class="tk">endmethod</span>.
+<span class="tk">endclass</span>.</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">YHL2609A001U.srvd.srvdsrv</span><span class="cnote">서비스 정의</span><button type="button" class="copy" aria-label="YHL2609A001U.srvd.srvdsrv 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flights API'</span>
+<span class="tk">define</span> <span class="tk">service</span> YHL2609A001U {
+  <span class="tk">expose</span> YHL2609R_001 <span class="tk">as</span> FlightsManaged;
+}</code></pre>
+</figure></section>
+
+<section id="step5" class="step"><span class="badge" aria-hidden="true">5</span><h2>POST 호출 테스트</h2>
+<ul class="pts">
+<li>POST 전에 GET으로 <code>X-CSRF-Token: Fetch</code>를 호출해 토큰과 세션 쿠키를 받는다.</li>
+<li>body에는 <code>Zlogkey</code>와 관리 필드 5개를 넣지 않는다. <code>$metadata</code>에서 <code>Core.Computed</code>가 붙은 필드는 서버가 채운다.</li>
+<li>응답에 요청 body가 그대로 돌아오는 것은 정상이다. 요청에 없던 <code>Zlogkey</code>, <code>CreatedBy</code> 등이 채워졌는지를 확인한다.</li>
+<li>PATCH, DELETE는 etag 때문에 <code>If-Match</code> 헤더가 필요하다. 테스트 때는 <code>*</code>를 쓸 수 있다.</li>
+</ul>
+<h4>1. 요청</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><button type="button" class="copy" aria-label="요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">POST</span> /sap/opu/odata4/sap/yhl2609a001u_01_api_v4/srvd_a2x/sap/yhl2609a001u_01/0001/FlightsManaged
+<span class="tkey">X-CSRF-Token</span>: &lt;토큰&gt;
+<span class="tkey">Content-Type</span>: application/json</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">Body</span><button type="button" class="copy" aria-label="Body 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"Carrid"</span>: <span class="ts">"KE"</span>,
+  <span class="tkey">"Connid"</span>: <span class="ts">"0017"</span>,
+  <span class="tkey">"Countryfr"</span>: <span class="ts">"KR"</span>,
+  <span class="tkey">"Cityfrom"</span>: <span class="ts">"SEOUL"</span>,
+  <span class="tkey">"Airpfrom"</span>: <span class="ts">"ICN"</span>,
+  <span class="tkey">"Countryto"</span>: <span class="ts">"US"</span>,
+  <span class="tkey">"Cityto"</span>: <span class="ts">"NEW YORK"</span>,
+  <span class="tkey">"Airpto"</span>: <span class="ts">"JFK"</span>,
+  <span class="tkey">"Fltime"</span>: <span class="tn">840</span>,
+  <span class="tkey">"Deptime"</span>: <span class="ts">"13:00:00"</span>,
+  <span class="tkey">"Arrtime"</span>: <span class="ts">"13:30:00"</span>,
+  <span class="tkey">"Distance"</span>: <span class="tn">11050.0</span>,
+  <span class="tkey">"Distid"</span>: <span class="ts">"KM"</span>,
+  <span class="tkey">"Fltype"</span>: <span class="ts">""</span>,
+  <span class="tkey">"Period"</span>: <span class="tn">0</span>
+}</code></pre>
+</figure>
+<h4>2. 확인 포인트</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>응답 필드</th><th>기대값</th></tr></thead><tbody>
+<tr><td><code>Zlogkey</code></td><td>자동 채번된 GUID</td></tr>
+<tr><td><code>CreatedBy</code>, <code>LocalLastChangedBy</code></td><td>로그인 유저 ID</td></tr>
+<tr><td><code>CreatedAt</code>, <code>LocalLastChangedAt</code>, <code>LastChangedAt</code></td><td>생성 시각 (UTC)</td></tr>
+</tbody></table></div></section>
+
+<section id="step6" class="step"><span class="badge" aria-hidden="true">6</span><h2>SAP__Messages 채우기</h2>
+<ul class="pts">
+<li><code>SAP__Messages</code>는 <code>reported</code>에 담은 메시지가 나오는 칸이다. 아무도 담지 않으면 <code>[]</code>다.</li>
+<li>성공/정보 메시지는 <code>reported</code>만, 요청을 거부하려면 <code>failed</code>도 함께 채운다. <code>reported</code>에만 error를 넣으면 저장은 막히지 않는다.</li>
+<li><code>numericSeverity</code>는 1=성공, 2=정보, 3=경고, 4=오류다. 메시지가 응답 body에 실리는지 헤더에 실리는지는 환경에서 확인한다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">YHL2609R_001.bdef.asbdef</span><span class="cnote">determination 추가</span><button type="button" class="copy" aria-label="BDEF determination 복사">복사</button></figcaption>
+<pre><code><span class="tk">determination</span> setMessage <span class="tk">on</span> <span class="tk">modify</span> { <span class="tk">create</span>; }</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">zbp_yhl2609r_001.clas.locals_imp.abap</span><span class="cnote">메서드 구현</span><button type="button" class="copy" aria-label="setMessage 구현 복사">복사</button></figcaption>
+<pre><code><span class="tk">method</span> setMessage.
+  <span class="tk">loop</span> <span class="tk">at</span> keys <span class="tk">into</span> <span class="tk">data</span>(key).
+    <span class="tk">append</span> <span class="tk">value</span> #(
+      %tky = key-%tky
+      %msg = new_message_with_text(
+               severity = if_abap_behv_message=&gt;severity-success
+               text     = |항공편이 정상 생성되었습니다.| )
+    ) <span class="tk">to</span> reported-flightsmanaged.
+  <span class="tk">endloop</span>.
+<span class="tk">endmethod</span>.</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">에러 메시지 패턴</span><span class="cnote">validation에서 사용</span><button type="button" class="copy" aria-label="에러 메시지 패턴 복사">복사</button></figcaption>
+<pre><code><span class="tk">append</span> <span class="tk">value</span> #( %tky = key-%tky ) <span class="tk">to</span> failed-flightsmanaged.
+<span class="tk">append</span> <span class="tk">value</span> #(
+  %tky = key-%tky
+  %msg = new_message_with_text(
+           severity = if_abap_behv_message=&gt;severity-error
+           text     = |이미 존재하는 항공편입니다.| )
+) <span class="tk">to</span> reported-flightsmanaged.</code></pre>
+</figure></section>
+
+<section id="step7" class="step"><span class="badge" aria-hidden="true">7</span><h2>다건 처리: 커스텀 Action</h2>
+<ul class="pts">
+<li>다건 수신 방법은 <code>$batch</code>, 커스텀 Action, Deep Create 세 가지다. 연동 API는 건별 결과를 설계할 수 있는 Action을 쓴다.</li>
+<li>Action 안에서 직접 <code>INSERT</code> 하지 않고 <code>MODIFY ENTITIES ... CREATE</code>로 프레임워크를 통과시켜야 채번, 관리 필드, validation이 동작한다.</li>
+<li>입력/결과가 부모-자식(deep) 구조면 abstract entity에 <code>key dummyKey</code>를 두고, abstract BDEF로 <code>association</code>을 선언한다.</li>
+<li>한 건이 실패해도 나머지는 진행되는 부분 성공 구조다. 전부 성공 또는 전부 롤백이 필요하면 <code>failed_tmp</code>가 있을 때 <code>failed</code>를 채워 Action 전체를 거부한다.</li>
+<li>Action 정의 문법과 결과 구조는 활성화 때 에러가 날 수 있다. 에러 메시지를 기준으로 보정한다.</li>
+</ul>
+<h4>1. Abstract Entity (입력)</h4>
+<figure class="code">
+<figcaption><span class="fname">YHL2609A_FLT_ITEM.ddls.asddls</span><span class="cnote">건별 입력</span><button type="button" class="copy" aria-label="YHL2609A_FLT_ITEM 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flight Import - Item'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> YHL2609A_FLT_ITEM
+{
+  <span class="tk">key</span> dummyKey : abap_boolean;
+      Carrid    : s_carr_id;
+      Connid    : s_conn_id;
+      Countryfr : land1;
+      Cityfrom  : s_from_cit;
+      Airpfrom  : s_fromairp;
+      Countryto : land1;
+      Cityto    : s_to_city;
+      Airpto    : s_toairp;
+      Fltime    : s_fltime;
+      Deptime   : s_dep_time;
+      Arrtime   : s_arr_time;
+      <span class="ta">@Semantics.quantity.unitOfMeasure</span>: <span class="ts">'Distid'</span>
+      Distance  : s_distance;
+      Distid    : s_distid;
+      Fltype    : s_fltype;
+      Period    : s_period;
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">YHL2609A_FLT_IMPORT.ddls.asddls</span><span class="cnote">입력 컬렉션</span><button type="button" class="copy" aria-label="YHL2609A_FLT_IMPORT 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flight Import - Parameter'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> YHL2609A_FLT_IMPORT
+{
+  <span class="tk">key</span> dummyKey : abap_boolean;
+      _Items   : <span class="tk">composition</span> [<span class="tn">0</span>..*] <span class="tk">of</span> YHL2609A_FLT_ITEM;
+}</code></pre>
+</figure>
+<h4>2. Abstract Entity (결과)</h4>
+<figure class="code">
+<figcaption><span class="fname">YHL2609A_FLT_RET.ddls.asddls</span><span class="cnote">건별 결과</span><button type="button" class="copy" aria-label="YHL2609A_FLT_RET 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flight Import - Return Item'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> YHL2609A_FLT_RET
+{
+  <span class="tk">key</span> dummyKey : abap_boolean;
+      Zlogkey    : sysuuid_x16;
+      Carrid     : s_carr_id;
+      Connid     : s_conn_id;
+      RetType    : abap.char(<span class="tn">1</span>);
+      RetMessage : abap.string(<span class="tn">0</span>);
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">YHL2609A_FLT_RESULT.ddls.asddls</span><span class="cnote">건수 + 결과 리스트</span><button type="button" class="copy" aria-label="YHL2609A_FLT_RESULT 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flight Import - Result'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> YHL2609A_FLT_RESULT
+{
+  <span class="tk">key</span> dummyKey : abap_boolean;
+      DataCount : abap.int4;
+      _Return   : <span class="tk">composition</span> [<span class="tn">0</span>..*] <span class="tk">of</span> YHL2609A_FLT_RET;
+}</code></pre>
+</figure>
+<h4>3. Abstract BDEF</h4>
+<figure class="code">
+<figcaption><span class="fname">YHL2609A_FLT_RESULT.bdef.asbdef</span><span class="cnote">계층 선언 (자식이 있는 부모에만 association)</span><button type="button" class="copy" aria-label="abstract BDEF 복사">복사</button></figcaption>
+<pre><code><span class="tk">abstract</span>;
+<span class="tk">strict</span> ( <span class="tn">2</span> );
+<span class="tk">with</span> <span class="tk">hierarchy</span>;
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> YHL2609A_FLT_RESULT
+{
+  <span class="tk">field</span> ( <span class="tk">suppress</span> ) dummyKey;
+  <span class="tk">association</span> _Return;
+}
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> YHL2609A_FLT_RET
+{
+  <span class="tk">field</span> ( <span class="tk">suppress</span> ) dummyKey;
+}
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> YHL2609A_FLT_IMPORT
+{
+  <span class="tk">field</span> ( <span class="tk">suppress</span> ) dummyKey;
+  <span class="tk">association</span> _Items;
+}
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> YHL2609A_FLT_ITEM
+{
+  <span class="tk">field</span> ( <span class="tk">suppress</span> ) dummyKey;
+}</code></pre>
+</figure>
+<h4>4. 업무 BDEF에 Action 추가</h4>
+<figure class="code">
+<figcaption><span class="fname">YHL2609R_001.bdef.asbdef</span><span class="cnote">static action</span><button type="button" class="copy" aria-label="action 선언 복사">복사</button></figcaption>
+<pre><code><span class="tk">static</span> <span class="tk">action</span> importFlights <span class="tk">deep</span> <span class="tk">parameter</span> YHL2609A_FLT_IMPORT
+                            <span class="tk">result</span> [<span class="tn">1</span>] YHL2609A_FLT_RESULT;</code></pre>
+</figure>
+<h4>5. Behavior Pool 구현</h4>
+<figure class="code">
+<figcaption><span class="fname">zbp_yhl2609r_001.clas.locals_imp.abap</span><span class="cnote">importflights 메서드 (Quick Fix 시그니처가 우선)</span><button type="button" class="copy" aria-label="importflights 구현 복사">복사</button></figcaption>
+<pre><code><span class="tk">method</span> importflights.
+
+  <span class="tc">" 1) 입력 컬렉션</span>
+  <span class="tk">data</span>(lt_items) = keys[ <span class="tn">1</span> ]-%param-_items.
+
+  <span class="tc">" 2) 건별 CREATE 데이터 (%cid는 건마다 유일)</span>
+  <span class="tk">data</span> lt_create <span class="tk">type</span> <span class="tk">table</span> <span class="tk">for</span> <span class="tk">create</span> yhl2609r_001\\flightsmanaged.
+  lt_create = <span class="tk">value</span> #(
+    <span class="tk">for</span> item <span class="tk">in</span> lt_items <span class="tk">index</span> <span class="tk">into</span> idx
+    ( %cid      = |C{ idx }|
+      carrid    = item-carrid
+      connid    = item-connid
+      countryfr = item-countryfr
+      cityfrom  = item-cityfrom
+      airpfrom  = item-airpfrom
+      countryto = item-countryto
+      cityto    = item-cityto
+      airpto    = item-airpto
+      fltime    = item-fltime
+      deptime   = item-deptime
+      arrtime   = item-arrtime
+      distance  = item-distance
+      distid    = item-distid
+      fltype    = item-fltype
+      period    = item-period ) ).
+
+  <span class="tc">" 3) 프레임워크 통과 (채번, 관리 필드, validation 동작)</span>
+  <span class="tk">modify</span> <span class="tk">entities</span> <span class="tk">of</span> yhl2609r_001 <span class="tk">in</span> <span class="tk">local</span> <span class="tk">mode</span>
+    <span class="tk">entity</span> flightsmanaged
+    <span class="tk">create</span> <span class="tk">fields</span> ( carrid connid countryfr cityfrom airpfrom
+                    countryto cityto airpto fltime deptime arrtime
+                    distance distid fltype period )
+    <span class="tk">with</span> lt_create
+    <span class="tk">mapped</span>   <span class="tk">data</span>(mapped_tmp)
+    <span class="tk">failed</span>   <span class="tk">data</span>(failed_tmp)
+    <span class="tk">reported</span> <span class="tk">data</span>(reported_tmp).
+
+  <span class="tc">" 4) 건별 결과</span>
+  <span class="tk">data</span> lt_return <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> yhl2609a_flt_ret <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+
+  <span class="tk">loop</span> <span class="tk">at</span> lt_items <span class="tk">into</span> <span class="tk">data</span>(ls_item).
+    <span class="tk">data</span>(lv_cid) = |C{ sy-tabix }|.
+    <span class="tk">data</span>(ls_ret) = <span class="tk">value</span> yhl2609a_flt_ret(
+                     carrid = ls_item-carrid
+                     connid = ls_item-connid ).
+
+    <span class="tk">if</span> <span class="tk">line_exists</span>( failed_tmp-flightsmanaged[ %cid = lv_cid ] ).
+      ls_ret-rettype = <span class="ts">'E'</span>.
+      <span class="tk">if</span> <span class="tk">line_exists</span>( reported_tmp-flightsmanaged[ %cid = lv_cid ] ).
+        ls_ret-retmessage = reported_tmp-flightsmanaged[ %cid = lv_cid ]-%msg-&gt;if_message~get_text( ).
+      <span class="tk">else</span>.
+        ls_ret-retmessage = <span class="ts">'생성 실패'</span>.
+      <span class="tk">endif</span>.
+    <span class="tk">else</span>.
+      ls_ret-rettype    = <span class="ts">'S'</span>.
+      ls_ret-retmessage = <span class="ts">'생성 완료'</span>.
+      ls_ret-zlogkey    = mapped_tmp-flightsmanaged[ %cid = lv_cid ]-zlogkey.
+    <span class="tk">endif</span>.
+
+    <span class="tk">append</span> ls_ret <span class="tk">to</span> lt_return.
+  <span class="tk">endloop</span>.
+
+  <span class="tc">" 5) 응답 (deep 구조는 FOR로 필드를 명시)</span>
+  result = <span class="tk">value</span> #(
+    ( %cid   = keys[ <span class="tn">1</span> ]-%cid
+      %param = <span class="tk">value</span> #(
+        datacount = <span class="tk">lines</span>( lt_items )
+        _return   = <span class="tk">value</span> #(
+          <span class="tk">for</span> r <span class="tk">in</span> lt_return
+          ( zlogkey    = r-zlogkey
+            carrid     = r-carrid
+            connid     = r-connid
+            rettype    = r-rettype
+            retmessage = r-retmessage ) ) ) ) ).
+
+<span class="tk">endmethod</span>.</code></pre>
+</figure>
+<h4>6. 호출</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><span class="cnote">액션 이름과 body 키 대소문자는 $metadata에서 복사</span><button type="button" class="copy" aria-label="Action 요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">POST</span> .../0001/FlightsManaged/com.sap.gateway.srvd_a2x.yhl2609a001u_01.v0001.importFlights
+<span class="tkey">X-CSRF-Token</span>: &lt;토큰&gt;
+<span class="tkey">Content-Type</span>: application/json
+
+{
+  <span class="tkey">"_Items"</span>: [
+    { <span class="tkey">"Carrid"</span>: <span class="ts">"KE"</span>, <span class="tkey">"Connid"</span>: <span class="ts">"0017"</span>, <span class="tkey">"Countryfr"</span>: <span class="ts">"KR"</span>, <span class="tkey">"Cityfrom"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"Airpfrom"</span>: <span class="ts">"ICN"</span>, <span class="tkey">"Countryto"</span>: <span class="ts">"US"</span>, <span class="tkey">"Cityto"</span>: <span class="ts">"NEW YORK"</span>, <span class="tkey">"Airpto"</span>: <span class="ts">"JFK"</span>,
+      <span class="tkey">"Fltime"</span>: <span class="tn">840</span>, <span class="tkey">"Deptime"</span>: <span class="ts">"13:00:00"</span>, <span class="tkey">"Arrtime"</span>: <span class="ts">"13:30:00"</span>,
+      <span class="tkey">"Distance"</span>: <span class="tn">11050.0</span>, <span class="tkey">"Distid"</span>: <span class="ts">"KM"</span>, <span class="tkey">"Fltype"</span>: <span class="ts">""</span>, <span class="tkey">"Period"</span>: <span class="tn">0</span> },
+    { <span class="tkey">"Carrid"</span>: <span class="ts">"OZ"</span>, <span class="tkey">"Connid"</span>: <span class="ts">"0201"</span>, <span class="tkey">"Countryfr"</span>: <span class="ts">"KR"</span>, <span class="tkey">"Cityfrom"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"Airpfrom"</span>: <span class="ts">"ICN"</span>, <span class="tkey">"Countryto"</span>: <span class="ts">"JP"</span>, <span class="tkey">"Cityto"</span>: <span class="ts">"TOKYO"</span>, <span class="tkey">"Airpto"</span>: <span class="ts">"NRT"</span>,
+      <span class="tkey">"Fltime"</span>: <span class="tn">140</span>, <span class="tkey">"Deptime"</span>: <span class="ts">"09:00:00"</span>, <span class="tkey">"Arrtime"</span>: <span class="ts">"11:20:00"</span>,
+      <span class="tkey">"Distance"</span>: <span class="tn">1160.0</span>, <span class="tkey">"Distid"</span>: <span class="ts">"KM"</span>, <span class="tkey">"Fltype"</span>: <span class="ts">""</span>, <span class="tkey">"Period"</span>: <span class="tn">0</span> }
+  ]
+}</code></pre>
+</figure></section>
+
+<section id="trouble" class="step"><span class="badge" aria-hidden="true">8</span><h2>막혔던 지점 정리</h2>
+<div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody>
+<tr><td>The behavior definition is "strict", which means that every entity must be flagged either as a "lock master" or as "lock dependent"</td><td>strict 모드에서 루트에 lock 선언이 없음</td><td>루트에 <code>lock master</code>, <code>authorization master ( global )</code> 추가. 자식은 <code>lock dependent by _부모</code></td></tr>
+<tr><td>The type of "Zlogkey" must be compatible with the type(s) of "ABP_BEHV_PID"</td><td><code>numbering : managed</code>인데 키가 <code>SMI_UUID</code>(CHAR 32)</td><td>키를 <code>SYSUUID_X16</code>으로 변경. CHAR 키를 유지하려면 early numbering으로 직접 채번</td></tr>
+<tr><td>Error while parsing an XML stream (<code>CX_SXML_PARSE_ERROR</code>)</td><td>body JSON 문법 오류. 호출 URL이 의도한 엔티티셋(<code>FlightsManaged</code>)이 아니라 <code>Flights</code> 액션이었음</td><td>JSON 검사, Postman Body를 raw/JSON으로 설정, URL과 body 키를 <code>$metadata</code> 기준으로 확인</td></tr>
+<tr><td>CreatedBy, CreatedAt 등 관리 필드가 비어 있음</td><td>BDEF에 <code>mapping</code>이 없거나, 언더스코어 때문에 <code>corresponding</code>이 자동 매칭 못 함</td><td><code>mapping for ... corresponding { ... }</code>에 관리 필드 5개를 직접 매핑. 재활성화 후 새로 POST (기존 레코드는 안 바뀜)</td></tr>
+<tr><td>응답 body에 요청 내용이 그대로 돌아옴</td><td>OData V4 기본 동작 (<code>return=representation</code>)</td><td>정상. 서버가 추가한 필드만 확인. 필요하면 <code>Prefer: return=minimal</code></td></tr>
+<tr><td><code>"SAP__Messages": []</code></td><td><code>reported</code>에 담긴 메시지가 없음</td><td>determination/validation에서 <code>new_message_with_text</code> 또는 <code>new_message</code>로 <code>reported</code>에 추가. 거부는 <code>failed</code>도 함께</td></tr>
+<tr><td>Action 결과가 건수 + 리스트인데 응답에 전달 안 됨</td><td>deep 결과는 abstract BDEF에서 계층 선언이 없으면 노출되지 않음</td><td><code>abstract; with hierarchy;</code> BDEF에 <code>association _Return;</code>, <code>field ( suppress ) dummyKey;</code> 선언</td></tr>
+<tr><td>Action으로 넣은 데이터에 UUID, 관리 필드 누락</td><td>테이블에 직접 <code>INSERT</code> 하면 프레임워크를 우회함</td><td><code>MODIFY ENTITIES ... CREATE</code>로 처리. <code>FIELDS</code>에 readonly 필드는 넣지 않음</td></tr>
+</tbody></table></div></section>
+
+</main>
+</div>
+<footer>시스템 A4H/001 (SAP_BASIS 7.54), 서비스 YHL2609A001U_01, BDEF YHL2609R_001, 테이블명과 일부 코드는 예시</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
