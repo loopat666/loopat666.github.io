@@ -1,0 +1,507 @@
+---
+layout: post
+title: "SAP RAP Static action with Deep parameters in OData v4"
+date: 2026-10-09 00:20:00 +0900
+---
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Deep action parameters in OData V4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>Deep action parameters in OData V4</h1>
+<p>SAP RAP unmanaged 시나리오로 만든 Flights 수신 API. 헤더와 아이템 배열을 한 번의 action 호출로 받아 검증하고 테이블에 저장합니다.</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="개발 단계"><ol><li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li><li><a href="#table"><span class="num">1</span><span class="lbl">DB 테이블</span></a></li><li><a href="#abstract"><span class="num">2</span><span class="lbl">Abstract entity: 입력과 결과</span></a></li><li><a href="#abstract-bdef"><span class="num">3</span><span class="lbl">Abstract BDEF</span></a></li><li><a href="#rootview"><span class="num">4</span><span class="lbl">Root view entity</span></a></li><li><a href="#bdef"><span class="num">5</span><span class="lbl">Behavior definition</span></a></li><li><a href="#class"><span class="num">6</span><span class="lbl">Behavior pool 클래스</span></a></li><li><a href="#service"><span class="num">7</span><span class="lbl">서비스 정의와 바인딩</span></a></li><li><a href="#call"><span class="num">8</span><span class="lbl">호출 테스트</span></a></li><li><a href="#trouble"><span class="num">9</span><span class="lbl">막혔던 지점 정리</span></a></li></ol></nav>
+<main><section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2>
+<ul class="pts"><li>헤더 1건에 아이템 N건을 담은 JSON을 <b>action 한 번</b>으로 수신하는 OData V4 Web API</li><li>핵심은 unmanaged BDEF의 <code>static action</code>에 <b>deep parameter</b>(abstract entity)를 붙이는 구조</li><li>개발 순서는 아래 1~8단계, 활성화도 같은 순서를 따름</li></ul>
+<ol class="flow" aria-label="처리 흐름">
+<li><b>Client</b><span>JSON 배열 POST</span></li>
+<li><b>Service Binding</b><span>OData V4 Web API</span></li>
+<li><b>Handler ImpData</b><span>검증 후 buffer 적재</span></li>
+<li><b>Saver save</b><span>INSERT YHL2609T0001</span></li>
+<li><b>Result</b><span>건수, 타입, 메시지</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>종류</th><th>이름</th><th>역할</th></tr></thead><tbody><tr><td>DB 테이블</td><td><code>YHL2609T0001</code></td><td>수신 데이터 저장</td></tr><tr><td>Abstract entity</td><td><code>YHL2609A001, YHL2609A001T</code></td><td>action 입력(헤더, 아이템)</td></tr><tr><td>Abstract entity</td><td><code>YHL2609A001R</code></td><td>action 결과</td></tr><tr><td>Abstract BDEF</td><td><code>YHL2609A001</code></td><td>deep parameter용 계층 정의</td></tr><tr><td>Root view entity</td><td><code>YHL2609A001U</code></td><td>BDEF 대상, 테이블 기반</td></tr><tr><td>Behavior definition</td><td><code>YHL2609A001U</code></td><td>unmanaged, static action ImpData</td></tr><tr><td>Behavior pool</td><td><code>ZBP_HL2609A001U</code></td><td>검증, buffer, 저장</td></tr><tr><td>Service definition</td><td><code>YHL2609A001U_01</code></td><td>Flights 노출</td></tr><tr><td>Service binding</td><td><code>YHL2609A001U_01_API_V4</code></td><td>OData V4 Web API</td></tr></tbody></table></div>
+</section><section id="table" class="step"><span class="badge" aria-hidden="true">1</span><h2>DB 테이블</h2>
+<ul class="pts"><li>키는 <code>MANDT + ZLOGKEY</code>(UUID). 같은 항공편을 여러 번 받아도 키가 겹치지 않음</li><li><code>DISTANCE</code>는 <code>DISTID</code>를 단위 참조 필드로 가짐</li></ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>필드</th><th>키</th><th>데이터 엘리먼트</th><th>비고</th></tr></thead><tbody><tr><td><code>MANDT</code></td><td>키</td><td><code>MANDT</code></td><td>클라이언트</td></tr><tr><td><code>ZLOGKEY</code></td><td>키</td><td><code>SMI_UUID</code></td><td>핸들러에서 UUID 생성</td></tr><tr><td><code>CARRID</code></td><td></td><td><code>S_CARR_ID</code></td><td>항공사</td></tr><tr><td><code>CONNID</code></td><td></td><td><code>S_CONN_ID</code></td><td>연결 번호</td></tr><tr><td><code>COUNTRYFR</code></td><td></td><td><code>LAND1</code></td><td>출발 국가</td></tr><tr><td><code>CITYFROM</code></td><td></td><td><code>S_FROM_CIT</code></td><td>출발 도시</td></tr><tr><td><code>AIRPFROM</code></td><td></td><td><code>S_FROMAIRP</code></td><td>출발 공항</td></tr><tr><td><code>COUNTRYTO</code></td><td></td><td><code>LAND1</code></td><td>도착 국가</td></tr><tr><td><code>CITYTO</code></td><td></td><td><code>S_TO_CITY</code></td><td>도착 도시</td></tr><tr><td><code>AIRPTO</code></td><td></td><td><code>S_TOAIRP</code></td><td>도착 공항</td></tr><tr><td><code>FLTIME</code></td><td></td><td><code>S_FLTIME</code></td><td>비행 시간(분)</td></tr><tr><td><code>DEPTIME</code></td><td></td><td><code>S_DEP_TIME</code></td><td>출발 시각</td></tr><tr><td><code>ARRTIME</code></td><td></td><td><code>S_ARR_TIME</code></td><td>도착 시각</td></tr><tr><td><code>DISTANCE</code></td><td></td><td><code>S_DISTANCE</code></td><td>거리, 참조 필드 DISTID</td></tr><tr><td><code>DISTID</code></td><td></td><td><code>S_DISTID</code></td><td>거리 단위</td></tr><tr><td><code>FLTYPE</code></td><td></td><td><code>S_FLTYPE</code></td><td>전세기 표시</td></tr><tr><td><code>PERIOD</code></td><td></td><td><code>S_PERIOD</code></td><td>도착일 차이(일)</td></tr></tbody></table></div>
+</section><section id="abstract" class="step"><span class="badge" aria-hidden="true">2</span><h2>Abstract entity: 입력과 결과</h2>
+<ul class="pts"><li>strict 모드에서 action의 <b>parameter와 result 타입은 abstract entity만</b> 가능</li><li>deep 구조는 root에 <code>composition</code>, 자식에 <code>association to parent</code>로 연결</li><li><code>ret_message</code>는 <code>abap.string(0)</code>로 선언. 그냥 <code>string</code>은 타입 정보 오류</li><li><code>FLTIME</code>은 <code>abap.int4</code>. <code>S_FLTIME</code>의 변환 exit <code>SDURA</code>는 OData V4에서 덤프 유발</li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001.ddls.asddls</span><span class="cnote">입력 root</span><button type="button" class="copy" aria-label="yhl2609a001.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flights API'</span>
+<span class="tk">define</span> <span class="tk">root</span> <span class="tk">abstract</span> <span class="tk">entity</span> yhl2609a001
+{
+  <span class="tk">key</span> dummyKey : abap.char( <span class="tn">10</span> );
+    _composition : <span class="tk">composition</span> [<span class="tn">0</span>..*] <span class="tk">of</span> yhl2609a001t;
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001t.ddls.asddls</span><span class="cnote">입력 아이템</span><button type="button" class="copy" aria-label="yhl2609a001t.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flights API - Import'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> yhl2609a001t
+
+{
+  <span class="tk">key</span> dummyKey  : abap.char( <span class="tn">10</span> );
+      CARRID    : s_carr_id;
+      CONNID    : s_conn_id;
+      COUNTRYFR : land1;
+      CITYFROM  : s_from_cit;
+      AIRPFROM  : s_fromairp;
+      COUNTRYTO : land1;
+      CITYTO    : s_to_city;
+      AIRPTO    : s_toairp;
+      FLTIME    : abap.int4;
+      DEPTIME   : s_dep_time;
+      ARRTIME   : s_arr_time;
+      <span class="ta">@Semantics.quantity.unitOfMeasure</span>: <span class="ts">'DISTID'</span>
+      DISTANCE  : s_distance;
+      DISTID    : s_distid;
+      FLTYPE    : s_fltype;
+      PERIOD    : s_period;
+
+      _dummyKey_Assoc : <span class="tk">association</span> <span class="tk">to</span> <span class="tk">parent</span> yhl2609a001 <span class="tk">on</span> $projection.dummyKey = _dummyKey_Assoc.dummyKey;
+
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001r.ddls.asddls</span><span class="cnote">결과</span><button type="button" class="copy" aria-label="yhl2609a001r.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flights API - Return'</span>
+<span class="tk">define</span> <span class="tk">root</span> <span class="tk">abstract</span> <span class="tk">entity</span> yhl2609a001r
+{
+  <span class="tk">key</span> dummyKey    : abap.char( <span class="tn">10</span> );
+      data_count  : abap.int4;
+      ret_type    : abap.char( <span class="tn">1</span> );
+      ret_message : abap.string(<span class="tn">0</span>);
+
+}</code></pre>
+</figure>
+</section><section id="abstract-bdef" class="step"><span class="badge" aria-hidden="true">3</span><h2>Abstract BDEF</h2>
+<ul class="pts"><li><code>deep parameter</code>를 쓰면 입력 abstract entity에도 <b>BDEF가 필요</b>. 없으면 "no behavior definition" 오류</li><li>root와 자식 모두 <code>define behavior for</code> 블록 필요, 연결은 <code>association _composition</code></li><li><code>field ( suppress ) dummyKey</code>로 입력 JSON에서 더미 키 숨김</li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001.bdef.asbdef</span><button type="button" class="copy" aria-label="yhl2609a001.bdef.asbdef 복사">복사</button></figcaption>
+<pre><code><span class="tk">abstract</span>;
+<span class="tk">strict</span> ( <span class="tn">2</span> );
+<span class="tk">with</span> <span class="tk">hierarchy</span>;
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> yhl2609a001 <span class="tc">//alias &lt;alias_name&gt;</span>
+{
+    <span class="tk">field</span> ( <span class="tk">suppress</span> ) dummyKey;
+    <span class="tk">association</span> _composition;
+}
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> yhl2609a001t <span class="tc">//alias &lt;alias_name&gt;</span>
+{
+    <span class="tk">field</span> ( <span class="tk">suppress</span> ) dummyKey;
+}</code></pre>
+</figure>
+</section><section id="rootview" class="step"><span class="badge" aria-hidden="true">4</span><h2>Root view entity</h2>
+<ul class="pts"><li>unmanaged BDEF가 붙는 대상. 저장 테이블 <code>yhl2609t0001</code> 기반</li><li><code>cast( fltime as abap.int4 )</code>로 <code>SDURA</code> 도메인 연결을 끊음</li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001u.ddls.asddls</span><button type="button" class="copy" aria-label="yhl2609a001u.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@AccessControl.authorizationCheck</span>: #NOT_REQUIRED
+<span class="ta">@EndUserText.label</span>: <span class="ts">'Flights API - Custom'</span>
+<span class="ta">@Metadata.ignorePropagatedAnnotations</span>: false
+<span class="tk">define</span> <span class="tk">root</span> <span class="tk">view</span> <span class="tk">entity</span> yhl2609a001u
+  <span class="tk">as</span> <span class="tk">select</span> <span class="tk">from</span> yhl2609t0001
+{
+  <span class="tk">key</span> zlogkey                     <span class="tk">as</span> Zlogkey,
+      carrid                      <span class="tk">as</span> Carrid,
+      connid                      <span class="tk">as</span> Connid,
+      countryfr                   <span class="tk">as</span> Countryfr,
+      cityfrom                    <span class="tk">as</span> Cityfrom,
+      airpfrom                    <span class="tk">as</span> Airpfrom,
+      countryto                   <span class="tk">as</span> Countryto,
+      cityto                      <span class="tk">as</span> Cityto,
+      airpto                      <span class="tk">as</span> Airpto,
+      <span class="tk">cast</span>( fltime <span class="tk">as</span> abap.int4 ) <span class="tk">as</span> Fltime,
+      deptime                     <span class="tk">as</span> Deptime,
+      arrtime                     <span class="tk">as</span> Arrtime,
+      distance                    <span class="tk">as</span> Distance,
+      distid                      <span class="tk">as</span> Distid,
+      fltype                      <span class="tk">as</span> Fltype,
+      period                      <span class="tk">as</span> Period
+}</code></pre>
+</figure>
+</section><section id="bdef" class="step"><span class="badge" aria-hidden="true">5</span><h2>Behavior definition</h2>
+<ul class="pts"><li><code>static action</code>이라 특정 레코드 키 없이 호출. URI는 <code>Flights/…ImpData</code></li><li>parameter는 abstract <b>root</b>(<code>yhl2609a001</code>), result는 <code>[0..1]</code> 단건</li><li><code>create / update / delete</code>는 열지 않음. 이 서비스는 action 전용</li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001u.bdef.asbdef</span><button type="button" class="copy" aria-label="yhl2609a001u.bdef.asbdef 복사">복사</button></figcaption>
+<pre><code><span class="tk">unmanaged</span> <span class="tk">implementation</span> <span class="tk">in</span> <span class="tk">class</span> zbp_hl2609a001u <span class="tk">unique</span>;
+<span class="tk">strict</span> ( <span class="tn">2</span> );
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> yhl2609a001u <span class="tk">alias</span> Flights
+<span class="tc">//late numbering</span>
+<span class="tk">lock</span> <span class="tk">master</span>
+<span class="tk">authorization</span> <span class="tk">master</span> ( <span class="tk">global</span> )
+<span class="tc">//etag master &lt;field_name&gt;</span>
+{
+  <span class="tc">//create ( authorization : global );</span>
+  <span class="tc">//update;</span>
+  <span class="tc">//delete;</span>
+  <span class="tc">//field ( readonly ) Zlogkey;</span>
+
+  <span class="tk">static</span> <span class="tk">action</span> ImpData <span class="tk">deep</span> <span class="tk">parameter</span> yhl2609a001 <span class="tk">result</span> [<span class="tn">0</span>..<span class="tn">1</span>] yhl2609a001r;
+}</code></pre>
+</figure>
+</section><section id="class" class="step"><span class="badge" aria-hidden="true">6</span><h2>Behavior pool 클래스</h2>
+<ul class="pts"><li><b>handler</b>(ImpData)는 검증과 buffer 적재만. DB에 직접 쓰지 않음</li><li><b>saver</b>의 <code>save</code>에서 INSERT, <code>cleanup</code>에서 buffer 초기화</li><li>검증 규칙: <code>CARRID</code> 또는 <code>CONNID</code>가 비었거나 <code>CARRID = 'ZZ'</code>면 <code>ret_type = 'E'</code>, buffer 비움</li><li>결과의 <code>%cid</code>는 필수. 요청과 결과를 잇는 연결 값</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zbp_hl2609a001u.clas.abap</span><span class="cnote">Global Class</span><button type="button" class="copy" aria-label="zbp_hl2609a001u.clas.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">class</span> zbp_hl2609a001u <span class="tk">definition</span> <span class="tk">public</span> <span class="tk">abstract</span> <span class="tk">final</span> <span class="tk">for</span> <span class="tk">behavior</span> <span class="tk">of</span> yhl2609a001u.
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> zbp_hl2609a001u <span class="tk">implementation</span>.
+<span class="tk">endclass</span>.</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">zbp_hl2609a001u.clas.locals_imp.abap</span><span class="cnote">Local Types (Implementations)</span><button type="button" class="copy" aria-label="zbp_hl2609a001u.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">class</span> lcl_buffer <span class="tk">definition</span> <span class="tk">final</span> <span class="tk">create</span> <span class="tk">private</span>.
+  <span class="tk">public</span> <span class="tk">section</span>.
+    <span class="tk">types</span>: ty_item <span class="tk">type</span> yhl2609t0001,
+           tt_item <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> ty_item <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+
+    <span class="tk">class</span>-<span class="tk">data</span> mt_item <span class="tk">type</span> tt_item.
+
+    <span class="tk">class</span>-<span class="tk">methods</span> <span class="tk">clear</span>.
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lcl_buffer <span class="tk">implementation</span>.
+  <span class="tk">method</span> <span class="tk">clear</span>.
+    <span class="tk">clear</span> mt_item.
+  <span class="tk">endmethod</span>.
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lhc_Flights <span class="tk">definition</span> <span class="tk">inheriting</span> <span class="tk">from</span> cl_abap_behavior_handler.
+  <span class="tk">private</span> <span class="tk">section</span>.
+
+    <span class="tk">methods</span> get_global_authorizations <span class="tk">for</span> <span class="tk">global</span> <span class="tk">authorization</span>
+      <span class="tk">importing</span> <span class="tk">request</span> <span class="tk">requested_authorizations</span> <span class="tk">for</span> Flights <span class="tk">result</span> <span class="tk">result</span>.
+
+    <span class="tk">methods</span> <span class="tk">read</span> <span class="tk">for</span> <span class="tk">read</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">read</span> Flights <span class="tk">result</span> <span class="tk">result</span>.
+
+    <span class="tk">methods</span> <span class="tk">lock</span> <span class="tk">for</span> <span class="tk">lock</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">lock</span> Flights.
+
+    <span class="tk">methods</span> ImpData <span class="tk">for</span> <span class="tk">modify</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">action</span> Flights~ImpData <span class="tk">result</span> <span class="tk">result</span>.
+
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lhc_Flights <span class="tk">implementation</span>.
+
+  <span class="tk">method</span> get_global_authorizations.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> <span class="tk">read</span>.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> <span class="tk">lock</span>.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> ImpData.
+
+    <span class="tk">data</span> lt_data <span class="tk">type</span> <span class="tk">table</span> <span class="tk">for</span> <span class="tk">action</span> import yhl2609a001u~ImpData.
+
+    <span class="tk">data</span> ls_result <span class="tk">like</span> line <span class="tk">of</span> <span class="tk">result</span>.
+    <span class="tk">data</span> lv_count <span class="tk">type</span> i.
+
+    lt_data = keys.
+
+    <span class="tk">loop</span> <span class="tk">at</span> lt_data <span class="tk">assigning</span> field-symbol(&lt;ls_key&gt;).
+
+      <span class="tk">clear</span> lv_count.
+      <span class="tk">data</span>(lv_err) = abap_false.
+      <span class="tk">data</span>(lv_msg) = <span class="ts">``</span>.
+
+      <span class="tc">" 1) 아이템 검증 + buffer 적재</span>
+      <span class="tk">loop</span> <span class="tk">at</span> &lt;ls_key&gt;-%param-_composition <span class="tk">assigning</span> field-symbol(&lt;ls_item&gt;).
+
+        <span class="tk">if</span> &lt;ls_item&gt;-carrid <span class="tk">is</span> <span class="tk">initial</span> <span class="tk">or</span> &lt;ls_item&gt;-connid <span class="tk">is</span> <span class="tk">initial</span>.
+          lv_err = abap_true.
+          lv_msg = <span class="ts">|{ sy-tabix }번째 아이템: carrid/connid는 필수입니다.|</span>.
+          <span class="tk">exit</span>.
+        <span class="tk">endif</span>.
+
+        <span class="tk">if</span> &lt;ls_item&gt;-carrid <span class="tk">eq</span> <span class="ts">`ZZ`</span>.
+          lv_err = abap_true.
+          lv_msg = <span class="ts">|{ sy-tabix }번째 아이템: carrid값 ZZ은 허용하지 않습니다.|</span>.
+          <span class="tk">exit</span>.
+        <span class="tk">endif</span>.
+
+        <span class="tk">try</span>.
+            <span class="tk">data</span>(lv_logkey) = cl_uuid_factory=&gt;create_system_uuid( )-&gt;create_uuid_x16( ).
+          <span class="tk">catch</span> cx_uuid_error <span class="tk">into</span> <span class="tk">data</span>(lo_cx).
+            lv_err = abap_true.
+            lv_msg = <span class="ts">|{ sy-tabix }번째 아이템: logkey 생성실패.|</span>.
+            <span class="tk">exit</span>.
+        <span class="tk">endtry</span>.
+
+        <span class="tk">append</span> <span class="tk">value</span> #( zlogkey   = lv_logkey
+                        carrid    = &lt;ls_item&gt;-carrid
+                        connid    = &lt;ls_item&gt;-connid
+
+                        countryfr = &lt;ls_item&gt;-countryfr
+                        cityfrom  = &lt;ls_item&gt;-cityfrom
+                        airpfrom  = &lt;ls_item&gt;-airpfrom
+                        countryto = &lt;ls_item&gt;-countryto
+                        cityto    = &lt;ls_item&gt;-cityto
+                        airpto    = &lt;ls_item&gt;-airpto
+                        fltime    = &lt;ls_item&gt;-fltime
+                        deptime   = &lt;ls_item&gt;-deptime
+                        arrtime   = &lt;ls_item&gt;-arrtime
+                        distance  = &lt;ls_item&gt;-distance
+                        distid    = &lt;ls_item&gt;-distid
+                        fltype    = &lt;ls_item&gt;-fltype
+                        period    = &lt;ls_item&gt;-period
+
+                      ) <span class="tk">to</span> lcl_buffer=&gt;mt_item.
+        lv_count += <span class="tn">1</span>.
+
+      <span class="tk">endloop</span>.
+
+      <span class="tc">" 2) 에러면 이번 요청분 buffer 롤백</span>
+      <span class="tk">if</span> lv_err = abap_true.
+        lcl_buffer=&gt;<span class="tk">clear</span>( ).
+        lv_count = <span class="tn">0</span>.
+      <span class="tk">endif</span>.
+
+      <span class="tc">" 3) 결과 반환</span>
+      ls_result = <span class="tk">value</span> #(
+        %cid   = &lt;ls_key&gt;-%cid
+        %param = <span class="tk">value</span> #(
+                          data_count  = lv_count
+                          ret_type    = <span class="tk">cond</span> #( <span class="tk">when</span> lv_err = abap_true <span class="tk">then</span> <span class="ts">'E'</span> <span class="tk">else</span> <span class="ts">'S'</span> )
+                          ret_message = <span class="tk">cond</span> #( <span class="tk">when</span> lv_err = abap_true <span class="tk">then</span> lv_msg
+                                                <span class="tk">else</span> <span class="ts">|{ lv_count }건 수신 완료|</span> ) ) ).
+      <span class="tk">append</span> ls_result <span class="tk">to</span> <span class="tk">result</span>.
+
+    <span class="tk">endloop</span>.
+
+  <span class="tk">endmethod</span>.
+
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lsc_YHL2609A001U <span class="tk">definition</span> <span class="tk">inheriting</span> <span class="tk">from</span> cl_abap_behavior_saver.
+  <span class="tk">protected</span> <span class="tk">section</span>.
+
+    <span class="tk">methods</span> finalize <span class="tk">redefinition</span>.
+
+    <span class="tk">methods</span> check_before_save <span class="tk">redefinition</span>.
+
+    <span class="tk">methods</span> save <span class="tk">redefinition</span>.
+
+    <span class="tk">methods</span> cleanup <span class="tk">redefinition</span>.
+
+    <span class="tk">methods</span> cleanup_finalize <span class="tk">redefinition</span>.
+
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lsc_YHL2609A001U <span class="tk">implementation</span>.
+
+  <span class="tk">method</span> finalize.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> check_before_save.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> save.
+    <span class="tk">if</span> lcl_buffer=&gt;mt_item <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">insert</span> yhl2609t0001 <span class="tk">from</span> <span class="tk">table</span> @( <span class="tk">corresponding</span> #( lcl_buffer=&gt;mt_item ) ).
+    <span class="tk">endif</span>.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> cleanup.
+
+    lcl_buffer=&gt;<span class="tk">clear</span>( ).
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> cleanup_finalize.
+  <span class="tk">endmethod</span>.
+
+<span class="tk">endclass</span>.</code></pre>
+</figure>
+</section><section id="service" class="step"><span class="badge" aria-hidden="true">7</span><h2>서비스 정의와 바인딩</h2>
+<ul class="pts"><li>Service Binding은 <b>OData V4 - Web API</b> 유형, 서비스 정의 <code>YHL2609A001U_01</code>, 버전 <code>0001</code></li><li>엔티티 이름을 <code>Flights</code>로 노출. URI의 <code>Flights</code>가 이 이름</li><li>모델을 바꿨다면 Binding을 <b>Unpublish 후 Publish</b></li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001u_01.srvd.srvdsrv</span><button type="button" class="copy" aria-label="yhl2609a001u_01.srvd.srvdsrv 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Flight - Service Definition'</span>
+<span class="tk">define</span> <span class="tk">service</span> YHL2609A001U_01 {
+  <span class="tk">expose</span> yhl2609a001u <span class="tk">as</span> Flights;
+}</code></pre>
+</figure>
+<div class="tblwrap"><table class="grid"><tbody>
+<tr><th scope="row">Binding 이름</th><td><code>YHL2609A001U_01_API_V4</code></td></tr>
+<tr><th scope="row">Binding 유형</th><td>OData V4 - Web API</td></tr>
+<tr><th scope="row">서비스 URL</th><td><code>/sap/opu/odata4/sap/yhl2609a001u_01_api_v4/srvd_a2x/sap/yhl2609a001u_01/0001/</code></td></tr>
+</tbody></table></div>
+</section><section id="call" class="step"><span class="badge" aria-hidden="true">8</span><h2>호출 테스트</h2>
+<ul class="pts"><li>순서는 <b>GET으로 CSRF 토큰과 쿠키 받기 → POST로 action 호출</b>. 쿠키 없이 토큰만 보내면 403</li><li>body에는 <code>_composition</code> 배열만. 바인딩 대상 <code>_it</code>(Flights)은 URI가 대신함</li><li>property 이름은 <b>메타데이터 대소문자 그대로</b>. 다르면 "Property is invalid" 400</li><li>저장 확인은 SE16N에서 <code>YHL2609T0001</code> 조회</li></ul>
+<h4>1. CSRF 토큰 받기</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><button type="button" class="copy" aria-label="요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">GET</span> /sap/opu/odata4/sap/yhl2609a001u_01_api_v4/srvd_a2x/sap/yhl2609a001u_01/0001/
+<span class="tkey">X-CSRF-Token</span>: Fetch
+<span class="tkey">Authorization</span>: Basic ****</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">응답</span><button type="button" class="copy" aria-label="응답 복사">복사</button></figcaption>
+<pre><code>HTTP/1.1 200 OK
+<span class="tkey">X-CSRF-Token</span>: 7Gk3x9...abcDEF==
+<span class="tkey">Set-Cookie</span>: SAP_SESSIONID_...
+<span class="tkey">Set-Cookie</span>: sap-XSRF_...</code></pre>
+</figure>
+<h4>2. action 호출</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><button type="button" class="copy" aria-label="요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">POST</span> /sap/opu/odata4/sap/yhl2609a001u_01_api_v4/srvd_a2x/sap/yhl2609a001u_01/0001/Flights/com.sap.gateway.srvd_a2x.yhl2609a001u_01.v0001.ImpData
+<span class="tkey">X-CSRF-Token</span>: 7Gk3x9...abcDEF==
+<span class="tkey">Content-Type</span>: application/json
+<span class="tkey">Cookie</span>: (GET 응답에서 받은 쿠키)</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">Body</span><button type="button" class="copy" aria-label="Body 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"_composition"</span>: [
+    {
+      <span class="tkey">"CARRID"</span>: <span class="ts">"LH"</span>,
+      <span class="tkey">"CONNID"</span>: <span class="ts">"0400"</span>,
+      <span class="tkey">"COUNTRYFR"</span>: <span class="ts">"DE"</span>,
+      <span class="tkey">"CITYFROM"</span>: <span class="ts">"FRANKFURT"</span>,
+      <span class="tkey">"AIRPFROM"</span>: <span class="ts">"FRA"</span>,
+      <span class="tkey">"COUNTRYTO"</span>: <span class="ts">"US"</span>,
+      <span class="tkey">"CITYTO"</span>: <span class="ts">"NEW YORK"</span>,
+      <span class="tkey">"AIRPTO"</span>: <span class="ts">"JFK"</span>,
+      <span class="tkey">"FLTIME"</span>: <span class="tn">435</span>,
+      <span class="tkey">"DEPTIME"</span>: <span class="ts">"10:10:00"</span>,
+      <span class="tkey">"ARRTIME"</span>: <span class="ts">"13:17:00"</span>,
+      <span class="tkey">"DISTANCE"</span>: <span class="tn">6162.0000</span>,
+      <span class="tkey">"DISTID"</span>: <span class="ts">"KM"</span>,
+      <span class="tkey">"FLTYPE"</span>: <span class="ts">"X"</span>,
+      <span class="tkey">"PERIOD"</span>: <span class="tn">0</span>
+    }
+  ]
+}</code></pre>
+</figure>
+<h4>3. 응답</h4>
+<figure class="code">
+<figcaption><span class="fname">성공</span><button type="button" class="copy" aria-label="성공 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"@odata.context"</span>: <span class="ts">"../$metadata#com.sap.gateway.srvd_a2x.yhl2609a001u_01.v0001.yhl2609a001r"</span>,
+  <span class="tkey">"@odata.metadataEtag"</span>: <span class="ts">"W/\"</span><span class="tn">20261006132815</span>\<span class="ts">""</span>,
+  <span class="tkey">"data_count"</span>: <span class="tn">1</span>,
+  <span class="tkey">"dummyKey"</span>: <span class="ts">""</span>,
+  <span class="tkey">"ret_message"</span>: <span class="ts">"1건 수신 완료"</span>,
+  <span class="tkey">"ret_type"</span>: <span class="ts">"S"</span>
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">검증 실패 (CARRID = ZZ)</span><button type="button" class="copy" aria-label="검증 실패 (CARRID = ZZ) 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"data_count"</span>: <span class="tn">0</span>,
+  <span class="tkey">"dummyKey"</span>: <span class="ts">""</span>,
+  <span class="tkey">"ret_message"</span>: <span class="ts">"1번째 아이템: carrid값 ZZ은 허용하지 않습니다."</span>,
+  <span class="tkey">"ret_type"</span>: <span class="ts">"E"</span>
+}</code></pre>
+</figure>
+</section><section id="trouble" class="step"><span class="badge" aria-hidden="true">9</span><h2>막혔던 지점 정리</h2><div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody><tr><td>Element information for data element/simple type STRING not available</td><td>abstract entity에 <code>string</code> 직접 사용</td><td><code>abap.string( 0 )</code> 또는 <code>abap.char( n )</code></td></tr><tr><td>CDS type … was not defined as "abstract entity"</td><td>parameter/result에 일반 view entity 지정</td><td>입력과 결과용 abstract entity를 따로 생성</td></tr><tr><td>There is no behavior definition for …</td><td>deep parameter의 abstract entity에 BDEF 없음 또는 이름 오타</td><td><code>abstract; with hierarchy;</code> BDEF 추가, 이름 확인</td></tr><tr><td>CX_SADL_GW_V4_MODEL_EXCEPTION (conversion exit SDURA)</td><td><code>FLTIME</code>의 변환 exit를 V4가 금지</td><td><code>abap.int4</code> 또는 <code>cast</code>로 도메인 연결 해제</td></tr><tr><td>CX_SXML_PARSE_ERROR (400)</td><td>JSON 문법 오류, 마지막 쉼표, Content-Type, 빈 body</td><td>JSON 검증 후 <code>application/json</code>으로 전송</td></tr><tr><td>Property 'Zlogkey' is invalid</td><td>FlightsType 필드를 <code>_composition</code> 안에 넣음</td><td><code>_composition</code> 항목은 입력 아이템 필드만, 대소문자 일치</td></tr><tr><td>403 CSRF token validation failed</td><td>토큰 또는 쿠키 누락, 세션 만료</td><td>GET Fetch를 다시 하고 쿠키까지 함께 전송</td></tr></tbody></table></div></section></main>
+</div>
+<footer>패키지 YHL2609_RAP01 기준. 소스는 abapGit 내보내기와 최종 수정본 기준입니다.</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>

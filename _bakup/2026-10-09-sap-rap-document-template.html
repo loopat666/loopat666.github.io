@@ -1,0 +1,186 @@
+---
+title: "SAP RAP document template"
+date: 2026-10-09 00:00:00 +0900
+published: true
+---
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>[문서 제목]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<!--
+==========================================================
+ RAP 정리 문서 템플릿 (라이트 모드)
+ 사용법: 이 파일을 Claude에 첨부하고 아래처럼 요청
+   "첨부한 템플릿과 같은 포맷으로 [주제]를 정리한 html 만들어줘.
+    파일명은 [이름].html, 소스코드는 전부 포함, 개발 단계 순서로."
+ 구성 요소
+   1) header.hero        : 제목 + 한 줄 설명
+   2) nav.rail           : 왼쪽 단계 목차 (모바일에서는 상단 칩)
+   3) section.step       : 개발 단계 1개 (번호 배지 + 제목)
+   4) ul.pts             : 노란 핵심 포인트 박스 (단계당 2~4줄)
+   5) figure.code        : 파일명 + 복사 버튼이 있는 코드 블록
+   6) table.grid         : 표 (오브젝트 목록, 필드, 에러 정리)
+   7) ol.flow            : 처리 흐름도 (5칸)
+ 단계를 늘리려면 section.step 과 nav 의 li 를 같은 순서로 추가
+ 코드 색상 클래스: tk 키워드, ts 문자열, tc 주석, tn 숫자, ta 어노테이션, tkey JSON 키
+==========================================================
+-->
+<body>
+<header class="hero">
+<h1>[문서 제목]</h1>
+<p>[한 줄 설명. 무엇을 만들었고 어떻게 동작하는지]</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="개발 단계"><ol><li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li><li><a href="#step1"><span class="num">1</span><span class="lbl">[개발 단계 제목]</span></a></li><li><a href="#step2"><span class="num">2</span><span class="lbl">호출 테스트</span></a></li><li><a href="#trouble"><span class="num">3</span><span class="lbl">막혔던 지점 정리</span></a></li></ol></nav>
+<main><section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2><ul class="pts"><li>이 문서가 다루는 시나리오를 한 줄로</li><li>핵심 구조나 기법 한 줄</li><li>개발 순서 안내 한 줄</li></ul>
+<ol class="flow" aria-label="처리 흐름">
+<li><b>[호출자]</b><span>[요청 방식]</span></li>
+<li><b>[서비스]</b><span>[노출 방식]</span></li>
+<li><b>[처리 단계]</b><span>[역할]</span></li>
+<li><b>[저장 단계]</b><span>[역할]</span></li>
+<li><b>[결과]</b><span>[응답 내용]</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>종류</th><th>이름</th><th>역할</th></tr></thead><tbody><tr><td>[오브젝트 종류]</td><td><code>[이름]</code></td><td>[역할]</td></tr><tr><td>[오브젝트 종류]</td><td><code>[이름]</code></td><td>[역할]</td></tr></tbody></table></div></section><section id="step1" class="step"><span class="badge" aria-hidden="true">1</span><h2>[개발 단계 제목]</h2><ul class="pts"><li>이 단계의 핵심 포인트 1</li><li>핵심 포인트 2 (코드는 <code>이렇게</code> 표시)</li><li>핵심 포인트 3</li></ul>
+<figure class="code">
+<figcaption><span class="fname">[파일명].ddls.asddls</span><span class="cnote">[설명]</span><button type="button" class="copy" aria-label="[파일명].ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'[라벨]'</span>
+<span class="tk">define</span> <span class="tk">root</span> <span class="tk">abstract</span> <span class="tk">entity</span> [엔티티명]
+{
+  <span class="tk">key</span> dummyKey : abap.char( <span class="tn">10</span> );
+      field1   : abap.char( <span class="tn">3</span> );
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">[파일명].clas.locals_imp.abap</span><span class="cnote">Local Types</span><button type="button" class="copy" aria-label="[파일명].clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">class</span> lhc_[Alias] <span class="tk">definition</span> <span class="tk">inheriting</span> <span class="tk">from</span> cl_abap_behavior_handler.
+  <span class="tk">private</span> <span class="tk">section</span>.
+    <span class="tk">methods</span> [ActionName] <span class="tk">for</span> <span class="tk">modify</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">action</span> [Alias]~[ActionName] <span class="tk">result</span> <span class="tk">result</span>.
+<span class="tk">endclass</span>.
+
+<span class="tc">" 주석 예시</span>
+<span class="tk">class</span> lhc_[Alias] <span class="tk">implementation</span>.
+  <span class="tk">method</span> [ActionName].
+    <span class="tk">data</span>(lv_count) = <span class="tk">lines</span>( keys ).
+  <span class="tk">endmethod</span>.
+<span class="tk">endclass</span>.</code></pre>
+</figure></section><section id="step2" class="step"><span class="badge" aria-hidden="true">2</span><h2>호출 테스트</h2><ul class="pts"><li>호출 순서와 주의점</li><li>body 규칙</li></ul>
+<h4>1. 요청</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><button type="button" class="copy" aria-label="요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">POST</span> /sap/opu/odata4/.../Flights/[action 풀네임]
+<span class="tkey">X-CSRF-Token</span>: &lt;토큰&gt;
+<span class="tkey">Content-Type</span>: application/json</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">Body</span><button type="button" class="copy" aria-label="Body 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"_composition"</span>: [
+    { <span class="tkey">"FIELD1"</span>: <span class="ts">"값"</span>, <span class="tkey">"FIELD2"</span>: <span class="tn">1</span> }
+  ]
+}</code></pre>
+</figure>
+<h4>2. 응답</h4>
+<figure class="code">
+<figcaption><span class="fname">성공</span><button type="button" class="copy" aria-label="성공 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"ret_type"</span>: <span class="ts">"S"</span>,
+  <span class="tkey">"ret_message"</span>: <span class="ts">"[메시지]"</span>
+}</code></pre>
+</figure></section><section id="trouble" class="step"><span class="badge" aria-hidden="true">3</span><h2>막혔던 지점 정리</h2><div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody><tr><td>[에러 메시지]</td><td>[원인]</td><td>[해결 방법]</td></tr><tr><td>[에러 메시지]</td><td>[원인]</td><td>[해결 방법]</td></tr></tbody></table></div></section></main>
+</div>
+<footer>[패키지명 또는 기준 정보]</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>

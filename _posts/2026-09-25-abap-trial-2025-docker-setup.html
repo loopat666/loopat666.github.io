@@ -1,0 +1,363 @@
+---
+layout: post
+title: "SAP ABAP Trial 2025 Docker setup guide"
+date: 2026-09-25 00:22:00 +0900
+---
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>ABAP Cloud Developer Trial 2025 - Docker 설치 및 구성 가이드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tc:#7A8697;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+header.hero .meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;font-size:14px;color:var(--muted)}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+.step p{margin:0 0 16px}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+ol.list,ul.list{margin:0 0 18px;padding-left:26px}
+ol.list>li,ul.list>li{margin:8px 0}
+ol.list>li figure.code{margin:8px 0 4px}
+.callout{margin:0 0 18px;padding:12px 16px;border-radius:8px;border:1px solid #BFDCDD;border-left:4px solid var(--accent);background:var(--accent-soft)}
+.callout.warn{border-color:var(--note-line);border-left-color:#B7860B;background:var(--note)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tc{color:var(--tc);font-style:italic}
+.tblwrap{overflow-x:auto;margin:0 0 16px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:11em;font-weight:600;color:var(--muted)}
+.tag{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:600;margin-right:6px;font-family:var(--sans)}
+.tag.done{background:#DAFBE1;color:#1A7F37;border:1px solid #ACEEBB}
+.tag.todo{background:var(--note);color:#8A6500;border:1px solid var(--note-line)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>ABAP Cloud Developer Trial 2025 — Docker 설치 및 구성 가이드</h1>
+<p>기존 2023 환경을 제거하고 미니PC에 2025 버전을 새로 설치한 뒤, 라이선스 등록과 개발 계정 생성, 같은 네트워크 내 노트북 원격 접속까지 구성한 기록입니다.</p>
+<div class="meta"><span>작성일 2026-09-25</span><span>작성자 Horim</span><span>대상 미니PC (RAM 32GB, 디스크 1TB)</span></div>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="구성 단계"><ol>
+<li><a href="#overview"><span class="num">1</span><span class="lbl">개요</span></a></li>
+<li><a href="#cleanup"><span class="num">2</span><span class="lbl">기존 환경 정리</span></a></li>
+<li><a href="#troubleshooting"><span class="num">3</span><span class="lbl">Docker / WSL2 문제 해결</span></a></li>
+<li><a href="#wslconfig"><span class="num">4</span><span class="lbl">WSL2 리소스 설정</span></a></li>
+<li><a href="#install"><span class="num">5</span><span class="lbl">2025 설치</span></a></li>
+<li><a href="#license"><span class="num">6</span><span class="lbl">라이선스 등록</span></a></li>
+<li><a href="#account"><span class="num">7</span><span class="lbl">개발 전용 계정</span></a></li>
+<li><a href="#network"><span class="num">8</span><span class="lbl">원격 접속 구성</span></a></li>
+<li><a href="#todo"><span class="num">9</span><span class="lbl">참고 및 TODO</span></a></li>
+</ol></nav>
+<main>
+
+<section id="overview" class="step"><span class="badge" aria-hidden="true">1</span><h2>개요</h2>
+<ul class="pts">
+<li>기존 <b>ABAP Cloud Developer Trial 2023</b> Docker 환경을 완전히 제거하고, 같은 미니PC(Windows)에 <b>2025</b> 버전을 새로 설치</li>
+<li>Docker Desktop 업데이트로 생긴 WSL2 버전 충돌을 해결하고 <code>.wslconfig</code> 리소스를 재설정</li>
+<li>라이선스 등록과 개발 전용 사용자 계정 생성 후, 같은 Wi-Fi 네트워크의 노트북에서 SAP GUI로 원격 접속하는 환경까지 구성 완료</li>
+</ul>
+<ol class="flow" aria-label="구성 순서">
+<li><b>기존 환경 정리</b><span>2023 컨테이너/이미지 삭제</span></li>
+<li><b>Docker / WSL2</b><span>충돌 해결, 리소스 설정</span></li>
+<li><b>2025 설치</b><span>이미지 pull, 컨테이너 실행</span></li>
+<li><b>라이선스 / 계정</b><span>SLICENSE, SU01 복사</span></li>
+<li><b>원격 접속</b><span>방화벽, hosts, SAP GUI</span></li>
+</ol>
+<h4>환경 요약</h4>
+<div class="tblwrap"><table class="grid"><tbody>
+<tr><th scope="row">서버(호스트) 역할</th><td>미니PC — Windows, RAM 32GB, Disk 1TB, CPU 8코어/16스레드</td></tr>
+<tr><th scope="row">Docker Desktop</th><td>v4.92.0 (WSL2 backend), Docker Engine 29.8.0</td></tr>
+<tr><th scope="row">이미지</th><td><code>sapse/abap-cloud-developer-trial:2025</code> (압축 22.2GB)</td></tr>
+<tr><th scope="row">컨테이너명 / 호스트명</th><td><code>a4h</code> / <code>vhcala4hci</code></td></tr>
+<tr><th scope="row">System ID</th><td><code>A4H</code>, Instance <code>00</code></td></tr>
+<tr><th scope="row">클라이언트 노트북</th><td>같은 Wi-Fi 네트워크의 별도 노트북 (SAP GUI 설치)</td></tr>
+</tbody></table></div></section>
+
+<section id="cleanup" class="step"><span class="badge" aria-hidden="true">2</span><h2>기존 환경(2023) 정리</h2>
+<ul class="pts">
+<li>디스크 용량 확보와 충돌 방지를 위해 2023 컨테이너와 이미지를 완전히 삭제</li>
+<li>디스크 점검은 <b>WizTree</b>로 전체 스캔, Docker 사용량은 <code>docker system df</code>로 확인 (정리 후 2.7GB 수준)</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">PowerShell</span><span class="cnote">컨테이너·이미지 삭제</span><button type="button" class="copy" aria-label="PowerShell 복사">복사</button></figcaption>
+<pre><code><span class="tc"># 컨테이너 확인 및 삭제</span>
+docker ps -a
+docker rm a4h
+
+<span class="tc"># 이미지 삭제</span>
+docker rmi sapse/abap-cloud-developer-trial:2023
+
+<span class="tc"># 확인</span>
+docker ps -a
+docker images</code></pre>
+</figure></section>
+
+<section id="troubleshooting" class="step"><span class="badge" aria-hidden="true">3</span><h2>Docker Desktop / WSL2 트러블슈팅</h2>
+<ul class="pts">
+<li>Docker Desktop 최신 버전으로 업데이트한 뒤 <b>"WSL needs updating"</b> 오류 발생</li>
+<li>원인은 WSL 자체가 시스템에 설치되어 있지 않았던 상태</li>
+</ul>
+<h4>해결 절차</h4>
+<ol class="list">
+<li>관리자 권한 PowerShell에서 Windows 기능 활성화
+<figure class="code">
+<figcaption><span class="fname">PowerShell (관리자)</span><button type="button" class="copy" aria-label="Windows 기능 활성화 명령 복사">복사</button></figcaption>
+<pre><code>dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart</code></pre>
+</figure></li>
+<li>재부팅 후 WSL 업데이트
+<figure class="code">
+<figcaption><span class="fname">PowerShell</span><button type="button" class="copy" aria-label="WSL 업데이트 명령 복사">복사</button></figcaption>
+<pre><code>wsl --update
+wsl --version</code></pre>
+</figure>
+최종 확인된 버전: <code>WSL 2.7.14.0</code>, 커널 <code>6.18.33.2</code></li>
+<li>Docker Desktop 재실행 후 정상 기동 확인 (<code>docker version</code>, <code>docker ps -a</code> 정상 응답)</li>
+</ol></section>
+
+<section id="wslconfig" class="step"><span class="badge" aria-hidden="true">4</span><h2>WSL2 리소스 설정 (.wslconfig)</h2>
+<ul class="pts">
+<li>경로: <code>C:\Users\holim-home\.wslconfig</code></li>
+<li>미니PC 실제 스펙(8코어/16스레드, RAM 32GB)에 맞춰 설정하며, 기존 2023 설정 값을 그대로 재사용</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">.wslconfig</span><button type="button" class="copy" aria-label=".wslconfig 복사">복사</button></figcaption>
+<pre><code>[wsl2]
+memory=28GB
+processors=12
+swap=24GB
+localhostForwarding=true</code></pre>
+</figure>
+<div class="tblwrap"><table class="grid"><thead><tr><th>항목</th><th>값</th><th>비고</th></tr></thead><tbody>
+<tr><td>memory</td><td>28GB</td><td>SAP 공식 최소 권장(24GB) 이상, 총 RAM 32GB 중 4GB는 OS용으로 남김</td></tr>
+<tr><td>processors</td><td>12</td><td>총 16스레드 중 4스레드는 OS/Docker Desktop UI용으로 남김</td></tr>
+<tr><td>swap</td><td>24GB</td><td>공식 권장치는 없으나 여유 있게 설정, 1TB 디스크라 용량 문제 없음</td></tr>
+</tbody></table></div>
+<h4>적용 후 검증</h4>
+<figure class="code">
+<figcaption><span class="fname">PowerShell</span><button type="button" class="copy" aria-label="검증 명령 복사">복사</button></figcaption>
+<pre><code>wsl --shutdown
+<span class="tc"># Docker Desktop 재시작 후</span>
+wsl -d docker-desktop free -h</code></pre>
+</figure>
+<div class="callout">검증 결과: <code>Mem: 27.4G total / Swap: 24.0G total</code> — 설정값 정상 반영 확인</div></section>
+
+<section id="install" class="step"><span class="badge" aria-hidden="true">5</span><h2>ABAP Cloud Developer Trial 2025 설치</h2>
+<ul class="pts">
+<li>Windows/Mac은 커널 sysctl 리밋을 직접 조정할 수 없으므로 <code>-skip-limits-check</code> 파라미터가 필수</li>
+<li>초기 기동에는 약 <b>13분</b> 소요 (대부분 HANA DB 기동 구간)</li>
+</ul>
+<h4>1. 이미지 Pull</h4>
+<figure class="code">
+<figcaption><span class="fname">PowerShell</span><button type="button" class="copy" aria-label="이미지 pull 명령 복사">복사</button></figcaption>
+<pre><code>docker pull sapse/abap-cloud-developer-trial:2025</code></pre>
+</figure>
+<p>Docker Hub 계정 로그인이 필요한 이미지이나, 기존 로그인 세션이 캐싱되어 있어 별도 인증 없이 진행되었습니다.</p>
+<h4>2. 컨테이너 실행</h4>
+<figure class="code">
+<figcaption><span class="fname">PowerShell</span><span class="cnote">컨테이너 실행</span><button type="button" class="copy" aria-label="컨테이너 실행 명령 복사">복사</button></figcaption>
+<pre><code>docker run --stop-timeout 3600 -i --name a4h -h vhcala4hci -p 3200:3200 -p 3300:3300 -p 8443:8443 -p 30213:30213 -p 50000:50000 -p 50001:50001 --restart unless-stopped sapse/abap-cloud-developer-trial:2025 -skip-limits-check -agree-to-sap-license</code></pre>
+</figure>
+<div class="tblwrap"><table class="grid"><thead><tr><th>포트</th><th>용도</th></tr></thead><tbody>
+<tr><td><code>3200</code></td><td>SAP GUI (Instance 00)</td></tr>
+<tr><td><code>3300</code></td><td>RFC (Instance 00)</td></tr>
+<tr><td><code>8443</code></td><td>SAP Cloud Connector</td></tr>
+<tr><td><code>30213</code></td><td>SAP HANA MDC Database</td></tr>
+<tr><td><code>50000</code></td><td>AS ABAP HTTP</td></tr>
+<tr><td><code>50001</code></td><td>AS ABAP HTTPS</td></tr>
+</tbody></table></div>
+<p>아래 메시지로 정상 기동을 확인했습니다.</p>
+<figure class="code">
+<figcaption><span class="fname">기동 완료 로그</span><button type="button" class="copy" aria-label="기동 완료 로그 복사">복사</button></figcaption>
+<pre><code>*** All services have been started. ***
+*** Have fun! ***</code></pre>
+</figure></section>
+
+<section id="license" class="step"><span class="badge" aria-hidden="true">6</span><h2>라이선스 등록</h2>
+<ul class="pts">
+<li>이미지에 포함된 AS ABAP 라이선스는 <b>3개월 유효</b></li>
+<li>최초 로그인 시 별도 등록 절차가 필요</li>
+</ul>
+<h4>1. 기본 계정 정보</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>User</th><th>Client</th><th>Password</th></tr></thead><tbody>
+<tr><td>SAP*</td><td>000</td><td rowspan="3"><code>ABAPtr2025#SP00</code></td></tr>
+<tr><td>DDIC</td><td>000 / 001</td></tr>
+<tr><td>DEVELOPER</td><td>001 (최초엔 잠김)</td></tr>
+</tbody></table></div>
+<h4>2. 등록 절차</h4>
+<ol class="list">
+<li>SAP*, client 000으로 최초 로그인</li>
+<li><code>SLICENSE</code> 트랜잭션에서 Hardware Key 복사 (예: <code>B1401380189</code>)</li>
+<li><a href="https://go.support.sap.com/minisap/#/minisap">SAP minisap 라이선스 발급 페이지</a>에서 시스템 <code>A4H</code> 선택, Hardware Key 입력 후 라이선스 파일 발급</li>
+<li><code>SLICENSE</code> 화면에서 <b>Install</b>을 눌러 발급받은 파일 적용</li>
+<li>로그아웃 후 DEVELOPER, client 001로 재로그인</li>
+<li><code>SLICENSE</code>에서 기존 무효(inactive hardware key) 라이선스 삭제 — <i>SAP*는 삭제 권한이 없어 DEVELOPER로 처리</i></li>
+</ol>
+<div class="callout warn"><b>라이선스 만료일: 2026-12-25</b><br>만료 전(권장: 12월 20일 전후) 위 2~4번 절차를 동일하게 반복해서 갱신해야 합니다. 미갱신 시 AS ABAP 로그인이 차단됩니다.</div></section>
+
+<section id="account" class="step"><span class="badge" aria-hidden="true">7</span><h2>개발 전용 계정 생성</h2>
+<ul class="pts">
+<li>기본 <code>DEVELOPER</code> 계정 대신, <code>SU01</code>의 <b>Copy</b> 기능으로 롤/권한을 그대로 복사해 전용 계정 <code>ABAP02</code>를 생성</li>
+<li>결과: <code>ABAP02</code>가 DEVELOPER와 동일한 개발 권한(Role)을 가진 상태로 생성 완료</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">SU01</span><span class="cnote">사용자 복사 절차</span><button type="button" class="copy" aria-label="SU01 절차 복사">복사</button></figcaption>
+<pre><code>SU01
+→ User: DEVELOPER 입력
+→ 메뉴 User &gt; Copy (Shift+F5)
+→ To User: ABAP02
+→ Address / Roles / Profiles 체크 후 복사
+→ 신규 비밀번호 설정
+→ Address 탭에서 이름 수정 후 저장</code></pre>
+</figure></section>
+
+<section id="network" class="step"><span class="badge" aria-hidden="true">8</span><h2>같은 네트워크 내 원격 접속 구성</h2>
+<ul class="pts">
+<li>미니PC(서버, 유선)와 노트북(클라이언트, Wi-Fi)이 <b>같은 공유기(같은 서브넷)</b>에 연결되어 있어 유/무선 차이와 무관하게 동일한 방식으로 구성 가능</li>
+<li>순서: 서버 IP 확인, 방화벽 허용, 클라이언트 hosts 등록, SAP GUI 연결</li>
+</ul>
+<h4>1. 서버 IP 확인</h4>
+<figure class="code">
+<figcaption><span class="fname">PowerShell</span><button type="button" class="copy" aria-label="ipconfig 복사">복사</button></figcaption>
+<pre><code>ipconfig
+<span class="tc"># 이더넷 어댑터 "이더넷" → IPv4 주소: 192.168.219.102</span></code></pre>
+</figure>
+<div class="callout warn"><code>vEthernet (Default Switch)</code>, <code>vEthernet (WSL)</code> 등 가상 어댑터의 IP(예: 172.19.x.x, 172.31.x.x)는 호스트 내부용이므로 외부 접속 주소로 쓰면 안 됩니다. 실제 이더넷 어댑터의 IP만 사용하세요.</div>
+<h4>2. 트러블슈팅 — Ping 응답 없음</h4>
+<p>원인은 네트워크 프로필이 <code>Public</code>으로 설정되어 인바운드 연결이 차단된 것이었습니다. 그룹 정책으로 <code>Private</code> 전환이 막혀 있어, 대신 방화벽 룰에 <code>-Profile Any</code>를 지정해 우회했습니다.</p>
+<figure class="code">
+<figcaption><span class="fname">PowerShell (관리자)</span><span class="cnote">방화벽 인바운드 규칙</span><button type="button" class="copy" aria-label="방화벽 규칙 복사">복사</button></figcaption>
+<pre><code>New-NetFirewallRule -DisplayName "Allow ICMP Ping" -Protocol ICMPv4 -IcmpType 8 -Direction Inbound -Action Allow
+New-NetFirewallRule -DisplayName "SAP GUI 3200" -Direction Inbound -LocalPort 3200 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "SAP RFC 3300" -Direction Inbound -LocalPort 3300 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "SAP HTTP 50000" -Direction Inbound -LocalPort 50000 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "SAP HTTPS 50001" -Direction Inbound -LocalPort 50001 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "SAP HANA DB 30213" -Direction Inbound -LocalPort 30213 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "SCC 8443" -Direction Inbound -LocalPort 8443 -Protocol TCP -Action Allow</code></pre>
+</figure>
+<h4>3. 클라이언트(노트북) 설정</h4>
+<figure class="code">
+<figcaption><span class="fname">C:\Windows\System32\drivers\etc\hosts</span><span class="cnote">관리자 권한 메모장</span><button type="button" class="copy" aria-label="hosts 항목 복사">복사</button></figcaption>
+<pre><code>192.168.219.102    vhcala4hci</code></pre>
+</figure>
+<h4>4. SAP GUI 연결 정보</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>항목</th><th>값</th></tr></thead><tbody>
+<tr><td>Application Server</td><td><code>vhcala4hci</code></td></tr>
+<tr><td>Instance Number</td><td><code>00</code></td></tr>
+<tr><td>System ID</td><td><code>A4H</code></td></tr>
+<tr><td>Client</td><td><code>001</code></td></tr>
+<tr><td>User</td><td><code>ABAP02</code></td></tr>
+</tbody></table></div>
+<p><span class="tag done">완료</span>노트북에서 SAP GUI를 통해 미니PC의 ABAP 시스템에 정상 접속을 확인했습니다.</p></section>
+
+<section id="todo" class="step"><span class="badge" aria-hidden="true">9</span><h2>참고 정보 및 향후 작업(TODO)</h2>
+<h4>자주 쓰는 명령어</h4>
+<figure class="code">
+<figcaption><span class="fname">PowerShell</span><span class="cnote">운영 명령어 모음</span><button type="button" class="copy" aria-label="명령어 모음 복사">복사</button></figcaption>
+<pre><code><span class="tc"># 컨테이너 정상 종료 (HANA 데이터 flush 시간 확보)</span>
+docker stop -t 7200 a4h
+
+<span class="tc"># 컨테이너 재시작</span>
+docker start -ai a4h
+
+<span class="tc"># 컨테이너/이미지 상태 확인</span>
+docker ps -a
+docker system df
+
+<span class="tc"># WSL2 리소스 확인</span>
+wsl -d docker-desktop free -h
+wsl -d docker-desktop nproc</code></pre>
+</figure>
+<h4>향후 TODO</h4>
+<ul class="list">
+<li><span class="tag todo">TODO</span>2026년 12월 25일 만료 전 AS ABAP 라이선스 갱신 (SLICENSE → minisap → Install)</li>
+<li><span class="tag todo">TODO</span>외부(집 밖) 네트워크 접속이 필요하면 <b>Tailscale</b> 기반 VPN 구성 (SAP GUI DIAG 프로토콜은 암호화가 없어 단순 포트포워딩은 비권장)</li>
+<li><span class="tag todo">TODO</span>Eclipse ADT 또는 VS Code + ABAP 확장을 연결해 본격 개발 환경 구성</li>
+<li><span class="tag todo">TODO</span>(선택) 2025 신기능인 VS Code Fiori Tools ↔ ADT 연동 테스트</li>
+</ul></section>
+
+</main>
+</div>
+<footer>작성: 2026-09-25 · ABAP Cloud Developer Trial 2025 (Docker) 설치/구성 작업 기록</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
