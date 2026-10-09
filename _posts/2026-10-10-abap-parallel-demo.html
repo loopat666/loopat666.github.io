@@ -1,0 +1,709 @@
+---
+layout: post
+categories: [ABAP]
+tags: [ABAP]
+title: "ABAP 대량 데이터 병렬처리 방법"
+description: "SAP ABAP 대량 데이터 병렬처리 하는 방법을 구현합니다."
+date: 2026-10.10 01:22:00 +0900
+---
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>SBOOK aRFC 병렬 처리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+
+.dgwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.dgwrap svg{display:block;min-width:760px;width:100%;height:auto}
+figure.diagram{margin:0 0 22px}
+figure.diagram figcaption{color:var(--muted);font-size:13px;margin-top:8px}
+.dg text{font-family:var(--sans)}
+.dg .m{font-family:var(--mono)}
+.dg .t{fill:var(--ink);font-size:14px;font-weight:600}
+.dg .s{fill:var(--muted);font-size:12.5px}
+.dg .hd{fill:var(--accent);font-size:13.5px;font-weight:700}
+.dg .lb{fill:var(--accent);font-size:12.5px;font-weight:600}
+.dg .grp{fill:#FBFCFD;stroke:var(--accent);stroke-width:1.5}
+.dg .bx{fill:var(--bg);stroke:var(--line);stroke-width:1.2}
+.dg .acc{fill:var(--accent-soft);stroke:#BFDCDD;stroke-width:1.2}
+.dg .wp{fill:var(--note);stroke:var(--note-line);stroke-width:1.2}
+.dg .st{fill:#fff;stroke:var(--accent);stroke-width:1.2;stroke-dasharray:5 3}
+.dg .ln{stroke:var(--accent);stroke-width:2;fill:none}
+.dg .ah{fill:var(--accent)}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>SBOOK 대량 데이터 aRFC 병렬 처리</h1>
+<p>SBOOK 을 날짜 범위로 조회해 청크로 나누고, 가용 Work Process 수에 맞춰 aRFC 로 병렬 처리합니다. 실패한 청크는 대기 · 재시도 후 순차 재처리까지 이어집니다.</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="개발 단계"><ol><li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li><li><a href="#step1"><span class="num">1</span><span class="lbl">RFC Function Module</span></a></li><li><a href="#step2"><span class="num">2</span><span class="lbl">병렬 처리 클래스</span></a></li><li><a href="#step3"><span class="num">3</span><span class="lbl">리포트 · 실행</span></a></li><li><a href="#step4"><span class="num">4</span><span class="lbl">소요 시간 측정</span></a></li><li><a href="#step5"><span class="num">5</span><span class="lbl">청크 크기 튜닝</span></a></li><li><a href="#trouble"><span class="num">6</span><span class="lbl">막혔던 지점 정리</span></a></li></ol></nav>
+<main><section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2>
+<ul class="pts"><li>SBOOK 을 <code>FLDATE</code> 범위로 읽어 청크 단위로 나누고, 가용 Work Process 수에 맞춰 aRFC 로 병렬 처리하는 데모</li><li>리포트(조회·출력) / 클래스(병렬 처리 캡슐화) / RFC FM(청크 처리) 3계층. 데이터 추출은 호출측, 처리는 클래스가 담당</li><li>개발 순서: FM → 클래스 → 리포트 → 소요 시간 측정 → 청크 크기 튜닝 → 막혔던 지점 정리</li><li>문법 기준: ABAP 7.54+ · S/4HANA On-Premise (인라인 선언, <code>VALUE #( )</code>, <code>REDUCE</code>, <code>+=</code> 사용)</li></ul>
+<figure class="diagram"><div class="dgwrap"><svg class="dg" viewBox="0 0 900 452" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dgt dgd">
+<title id="dgt">SBOOK 병렬 처리 아키텍처</title>
+<desc id="dgd">리포트가 SBOOK을 조회해 병렬 처리 클래스에 넘기면, 클래스가 청크로 나눠 aRFC로 여러 Work Process의 Function Module에 분배하고, 콜백으로 결과를 모아 리포트에 돌려준다.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah" d="M0 0L10 5L0 10z"/></marker></defs>
+
+<rect class="bx" x="0" y="76" width="160" height="200" rx="10"/>
+<text class="hd" x="12" y="98">리포트</text>
+<text class="s m" x="12" y="116">YHL2609R0100</text>
+<text class="s" x="12" y="146">① 선택화면 FLDATE</text>
+<text class="s" x="12" y="168">② SELECT SBOOK</text>
+<text class="s" x="12" y="190">③ run( lt_all )</text>
+<text class="s" x="12" y="230">④ get_result( )</text>
+<text class="s" x="12" y="254">⑤ 화면 출력</text>
+
+<rect class="bx" x="0" y="312" width="160" height="56" rx="10"/>
+<text class="t" x="12" y="336">DB 테이블 SBOOK</text>
+<text class="s" x="12" y="355">FLDATE 범위 조회</text>
+<path class="ln" d="M80 276 V310" marker-end="url(#ah)"/>
+
+<path class="ln" d="M160 186 H220" marker-end="url(#ah)"/>
+<path class="ln" d="M222 226 H162" marker-end="url(#ah)"/>
+
+<rect class="grp" x="222" y="40" width="290" height="380" rx="12"/>
+<text class="hd m" x="236" y="62">ZCL_2609_SBOOK_PARALLEL</text>
+
+<rect class="acc" x="238" y="76" width="258" height="50" rx="8"/>
+<text class="t" x="250" y="98">① init_resource</text>
+<text class="s" x="250" y="116">SPBT_INITIALIZE → 적용 병렬 수</text>
+
+<rect class="acc" x="238" y="134" width="258" height="50" rx="8"/>
+<text class="t" x="250" y="156">② 청크 분할</text>
+<text class="s" x="250" y="174">it_data → 청크 단위 slice</text>
+
+<rect class="acc" x="238" y="192" width="258" height="50" rx="8"/>
+<text class="t" x="250" y="214">③ dispatch</text>
+<text class="s" x="250" y="232">WAIT UNTIL running &lt; max_tasks</text>
+
+<rect class="acc" x="238" y="250" width="258" height="50" rx="8"/>
+<text class="t" x="250" y="272">④ receive_result</text>
+<text class="s" x="250" y="290">RECEIVE RESULTS (콜백)</text>
+
+<rect class="acc" x="238" y="308" width="258" height="50" rx="8"/>
+<text class="t" x="250" y="330">⑤ retry_failed</text>
+<text class="s" x="250" y="348">실패 청크 동기 재처리</text>
+
+<rect class="st" x="238" y="366" width="258" height="44" rx="8"/>
+<text class="t" x="250" y="386">상태 테이블</text>
+<text class="s m" x="250" y="402">mt_inflight · mt_failed · mt_result</text>
+
+<path class="ln" d="M512 217 H604" marker-end="url(#ah)"/>
+<text class="lb" x="522" y="208">aRFC 호출</text>
+<path class="ln" d="M606 275 H514" marker-end="url(#ah)"/>
+<text class="lb" x="540" y="267">콜백</text>
+
+<rect class="grp" x="606" y="40" width="294" height="380" rx="12"/>
+<text class="hd" x="620" y="62">Work Process 병렬 실행</text>
+
+<rect class="wp" x="622" y="76" width="262" height="52" rx="8"/>
+<text class="t" x="634" y="98">Work Process 1</text>
+<text class="s m" x="634" y="117">ZFM_2609_SBOOK_PROCESS_CHUNK</text>
+<rect class="wp" x="622" y="136" width="262" height="52" rx="8"/>
+<text class="t" x="634" y="158">Work Process 2</text>
+<text class="s m" x="634" y="177">ZFM_2609_SBOOK_PROCESS_CHUNK</text>
+<rect class="wp" x="622" y="196" width="262" height="52" rx="8"/>
+<text class="t" x="634" y="218">Work Process 3</text>
+<text class="s m" x="634" y="237">ZFM_2609_SBOOK_PROCESS_CHUNK</text>
+<rect class="wp" x="622" y="256" width="262" height="52" rx="8"/>
+<text class="t" x="634" y="278">Work Process 4</text>
+<text class="s m" x="634" y="297">ZFM_2609_SBOOK_PROCESS_CHUNK</text>
+<rect class="wp" x="622" y="316" width="262" height="52" rx="8"/>
+<text class="t" x="634" y="338">Work Process 5</text>
+<text class="s m" x="634" y="357">ZFM_2609_SBOOK_PROCESS_CHUNK</text>
+
+<rect class="st" x="622" y="376" width="262" height="34" rx="8"/>
+<text class="s" x="634" y="398">끝난 WP 가 다음 청크를 즉시 수령</text>
+
+<text class="s" x="0" y="442">aRFC 호출 = CALL FUNCTION … STARTING NEW TASK · 콜백 = CALLING receive_result ON END OF TASK</text>
+</svg></div><figcaption>아키텍처: 리포트(조회·출력) → 병렬 처리 클래스(분할·디스패치·재시도) → aRFC 로 N개 WP 에서 FM 실행 → 콜백으로 집계</figcaption></figure>
+<ol class="flow" aria-label="처리 흐름">
+<li><b>리포트</b><span>FLDATE 범위로 SBOOK 조회</span></li>
+<li><b>병렬 처리 클래스</b><span>청크 분할 · WP 수 결정</span></li>
+<li><b>aRFC 디스패치</b><span>최대 N개 WP 동시 실행</span></li>
+<li><b>FM 처리</b><span>청크 단위 건별 처리</span></li>
+<li><b>결과 집계</b><span>콜백 수집 · 재처리 · 요약</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>종류</th><th>이름</th><th>역할</th></tr></thead><tbody><tr><td>리포트</td><td><code>YHL2609R0100</code></td><td>선택화면(<code>S_FLDATE</code>), SBOOK 조회, 결과 출력. 처리 로직은 없음</td></tr><tr><td>글로벌 클래스</td><td><code>ZCL_2609_SBOOK_PARALLEL</code></td><td>분할 · aRFC 디스패치 · WP 확인 · 재시도 · 순차 재처리를 캡슐화</td></tr><tr><td>Function Module</td><td><code>ZFM_2609_SBOOK_PROCESS_CHUNK</code></td><td>Remote-Enabled. 청크 1개를 처리하고 건수를 반환</td></tr><tr><td>테이블 타입</td><td><code>TY_BOOKINGS</code></td><td>청크 / FM 파라미터 타입 (SBOOK 라인). 기존 환경의 타입을 그대로 사용</td></tr><tr><td>표준 FM</td><td><code>SPBT_INITIALIZE</code> · <code>SPBT_GET_CURR_RESOURCE_INFO</code></td><td>RFC 서버 그룹의 최대 / 가용 WP 조회</td></tr><tr><td>설정</td><td>RZ12 RFC 서버 그룹 <code>DEFAULT</code></td><td>aRFC 대상 서버 그룹. 실제 병렬 가능 WP 수를 결정</td></tr></tbody></table></div>
+</section>
+<section id="step1" class="step"><span class="badge" aria-hidden="true">1</span><h2>RFC Function Module</h2>
+<ul class="pts"><li><strong>Remote-Enabled Module</strong> 이어야 aRFC(<code>STARTING NEW TASK</code>) 대상이 됨. 파라미터는 모두 Pass by Value</li><li><code>IT_SBOOK</code> 은 청크 1개, 반환은 <code>EV_COUNT</code> / <code>EV_CANCELLED</code>. 클래스 콜백이 같은 이름으로 <code>RECEIVE</code> 하므로 파라미터명을 바꾸면 클래스도 수정해야 함</li><li>건별 처리 로직은 <code>TODO</code> 자리에 작성. DB 변경이 있으면 FM 안에서 <code>COMMIT WORK</code> (각 태스크는 독립 LUW)</li><li>시스템 등록명 기준으로 정리 (최초 제공본은 <code>Z_SBOOK_PROCESS_CHUNK</code> / <code>ZTT_SBOOK</code>)</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zfm_2609_sbook_process_chunk.fugr</span><span class="cnote">SE37 · ABAP 7.54+ · S/4HANA On-Premise</span><button type="button" class="copy" aria-label="zfm_2609_sbook_process_chunk.fugr 복사">복사</button></figcaption>
+<pre><code><span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp; Function Module ZFM_2609_SBOOK_PROCESS_CHUNK  (SE37)</span>
+<span class="tc">*&amp;  - Processing Type : Remote-Enabled Module  (필수, aRFC 대상)</span>
+<span class="tc">*&amp;  - Function Group  : ZSBOOK_PARALLEL (임의)</span>
+<span class="tc">*&amp;</span>
+<span class="tc">*&amp; Parameters (모두 Pass by Value):</span>
+<span class="tc">*&amp;  IMPORTING  VALUE(IT_SBOOK)     TYPE TY_BOOKINGS</span>
+<span class="tc">*&amp;  EXPORTING  VALUE(EV_COUNT)     TYPE I</span>
+<span class="tc">*&amp;             VALUE(EV_CANCELLED) TYPE I</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tk">FUNCTION</span> zfm_2609_sbook_process_chunk.
+
+  <span class="tk">CLEAR</span>: ev_count, ev_cancelled.
+
+  ev_count = <span class="tk">lines</span>( it_sbook ).
+
+  <span class="tk">LOOP</span> <span class="tk">AT</span> it_sbook <span class="tk">ASSIGNING</span> <span class="tk">FIELD</span>-<span class="tk">SYMBOL</span>(&lt;ls_sbook&gt;).
+
+    <span class="tk">IF</span> &lt;ls_sbook&gt;-cancelled = abap_true.
+      ev_cancelled += <span class="tn">1</span>.
+      <span class="tk">CONTINUE</span>.
+    <span class="tk">ENDIF</span>.
+
+    <span class="tc">" TODO: 실제 건별 처리 로직 (Z 테이블 적재, 집계, 인터페이스 등)</span>
+
+  <span class="tk">ENDLOOP</span>.
+
+  <span class="tc">" DB 변경이 있다면 이 FM 안에서 COMMIT WORK 처리</span>
+  <span class="tc">" (각 aRFC 는 독립 LUW)</span>
+
+<span class="tk">ENDFUNCTION</span>.</code></pre>
+</figure>
+</section>
+<section id="step2" class="step"><span class="badge" aria-hidden="true">2</span><h2>병렬 처리 클래스</h2>
+<ul class="pts"><li>생성자 파라미터로 FM 이름 · 청크 크기 · 병렬 수를 받음 (기본값 <code>ZFM_2609_SBOOK_PROCESS_CHUNK</code> / 500 / 5)</li><li><code>run</code> 흐름: 상태 초기화 → <code>init_resource</code> → 청크 분할 · <code>dispatch</code> → <code>WAIT UNTIL mv_running = 0</code> → <code>retry_failed</code></li><li>동시 실행 수는 <code>WAIT UNTIL mv_running &lt; mv_max_tasks</code> 로 제한. <code>resource_failure</code> 시 내 태스크 종료를 기다리거나 3초 대기 후 최대 20회 재시도</li><li>실행 중 청크는 <code>mt_inflight</code> 에 보관 → 실패하면 <code>mt_failed</code> → 마지막에 현재 세션에서 순차 재처리</li><li>DB 커서는 사용하지 않음. 전부 <code>SELECT INTO TABLE</code> 로 읽은 뒤 메모리에서 분할 (WP 전환 시 커서가 닫히는 문제 회피)</li></ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>메서드</th><th>역할</th></tr></thead><tbody><tr><td><code>constructor( iv_function, iv_chunk_size, iv_max_tasks )</code></td><td>FM 이름 · 청크 크기 · 병렬 수 설정</td></tr><tr><td><code>run( it_data )</code></td><td>상태 초기화 후 병렬 처리 실행. 같은 인스턴스를 재사용 가능</td></tr><tr><td><code>get_result( )</code></td><td>태스크별 결과 (task, rows, cancelled, status, msg)</td></tr><tr><td><code>get_summary( )</code></td><td>건수 집계 + WP 정보</td></tr><tr><td><code>receive_result( p_task )</code></td><td>aRFC 콜백 (<code>ON END OF TASK</code>). 직접 호출 금지</td></tr></tbody></table></div>
+<div class="tblwrap"><table class="grid"><thead><tr><th>status</th><th>의미</th></tr></thead><tbody><tr><td><code>S</code></td><td>병렬 단계에서 성공</td></tr><tr><td><code>R</code></td><td>병렬 단계 실패 후 순차 재처리로 성공 (<code>msg</code> 에 원인 기록)</td></tr><tr><td><code>E</code></td><td>재처리까지 실패</td></tr></tbody></table></div>
+<figure class="code">
+<figcaption><span class="fname">zcl_2609_sbook_parallel.clas.abap</span><span class="cnote">정의부 · ABAP 7.54+ · S/4HANA On-Premise</span><button type="button" class="copy" aria-label="zcl_2609_sbook_parallel.clas.abap 복사">복사</button></figcaption>
+<pre><code><span class="tc">"! SBOOK 병렬 처리기 (aRFC)</span>
+<span class="tc">"! - 입력 데이터를 청크(기본 500건)로 분할해 최대 N개 WP 로 병렬 처리</span>
+<span class="tc">"! - 리소스 부족 시 대기 후 재시도, 끝까지 실패한 청크는 순차 재처리</span>
+<span class="tc">"! - 데이터 조회/화면 출력은 호출측 책임 (이 클래스는 처리만 담당)</span>
+<span class="tk">class</span> zcl_2609_sbook_parallel <span class="tk">definition</span>
+  <span class="tk">public</span>
+  <span class="tk">final</span>
+  <span class="tk">create</span> <span class="tk">public</span>.
+
+  <span class="tk">public</span> <span class="tk">section</span>.
+    <span class="tk">types</span>:
+      <span class="tk">begin</span> <span class="tk">of</span> ty_result,
+        task      <span class="tk">type</span> c <span class="tk">length</span> <span class="tn">8</span>,
+        rows      <span class="tk">type</span> i,
+        cancelled <span class="tk">type</span> i,
+        status    <span class="tk">type</span> c <span class="tk">length</span> <span class="tn">1</span>,   <span class="tc">" S=성공 R=재처리 성공 E=실패</span>
+        msg       <span class="tk">type</span> string,
+      <span class="tk">end</span> <span class="tk">of</span> ty_result,
+      tt_result <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> ty_result <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>,
+
+      <span class="tk">begin</span> <span class="tk">of</span> ty_summary,
+        max_wps      <span class="tk">type</span> i,   <span class="tc">" 그룹 최대 WP</span>
+        free_wps     <span class="tk">type</span> i,   <span class="tc">" 조회 시점 가용 WP</span>
+        applied_wps  <span class="tk">type</span> i,   <span class="tc">" 실제 적용한 병렬 수</span>
+        tasks        <span class="tk">type</span> i,
+        total_rows   <span class="tk">type</span> i,
+        success_rows <span class="tk">type</span> i,
+        retry_rows   <span class="tk">type</span> i,
+        failed_rows  <span class="tk">type</span> i,
+        failed_tasks <span class="tk">type</span> i,
+      <span class="tk">end</span> <span class="tk">of</span> ty_summary.
+
+    <span class="tk">methods</span> constructor
+      <span class="tk">importing</span>
+        iv_function   <span class="tk">type</span> rs38l_fnam <span class="tk">default</span> <span class="ts">'ZFM_2609_SBOOK_PROCESS_CHUNK'</span>
+        iv_chunk_size <span class="tk">type</span> i          <span class="tk">default</span> <span class="tn">500</span>
+        iv_max_tasks  <span class="tk">type</span> i          <span class="tk">default</span> <span class="tn">5</span>.
+
+    <span class="tc">"! 병렬 처리 실행 (호출 시마다 상태 초기화)</span>
+    <span class="tk">methods</span> run
+      <span class="tk">importing</span> it_data <span class="tk">type</span> ty_bookings.
+
+    <span class="tk">methods</span> get_result
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_result) <span class="tk">type</span> tt_result.
+
+    <span class="tk">methods</span> get_summary
+      <span class="tk">returning</span> <span class="tk">value</span>(rs_summary) <span class="tk">type</span> ty_summary.
+
+    <span class="tc">"! aRFC 콜백 (ON END OF TASK) - 직접 호출 금지</span>
+    <span class="tk">methods</span> receive_result
+      <span class="tk">importing</span> p_task <span class="tk">type</span> clike.
+
+  <span class="tk">private</span> <span class="tk">section</span>.
+    <span class="tk">constants</span>:
+      c_retry <span class="tk">type</span> i <span class="tk">value</span> <span class="tn">20</span>,   <span class="tc">" 리소스 부족 시 재시도 횟수</span>
+      c_wait  <span class="tk">type</span> i <span class="tk">value</span> <span class="tn">3</span>,    <span class="tc">" 재시도 사이 대기(초)</span>
+      c_group <span class="tk">type</span> rzlli_apcl <span class="tk">value</span> <span class="ts">'DEFAULT'</span>.   <span class="tc">" RZ12 그룹명</span>
+
+    <span class="tk">types</span>:
+      <span class="tk">begin</span> <span class="tk">of</span> ty_chunk,
+        task  <span class="tk">type</span> c <span class="tk">length</span> <span class="tn">8</span>,
+        chunk <span class="tk">type</span> ty_bookings,
+        msg   <span class="tk">type</span> string,
+      <span class="tk">end</span> <span class="tk">of</span> ty_chunk,
+      tt_inflight <span class="tk">type</span> <span class="tk">sorted</span> <span class="tk">table</span> <span class="tk">of</span> ty_chunk <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> task,
+      tt_failed   <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> ty_chunk <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+
+    <span class="tk">data</span>:
+      mv_function    <span class="tk">type</span> rs38l_fnam,
+      mv_chunk_size  <span class="tk">type</span> i,
+      mv_cfg_tasks   <span class="tk">type</span> i,        <span class="tc">" 설정 병렬 수 (상한)</span>
+      mv_max_tasks   <span class="tk">type</span> i,        <span class="tc">" 가용 WP 반영한 적용 병렬 수</span>
+      mv_max_wps     <span class="tk">type</span> i,
+      mv_free_wps    <span class="tk">type</span> i,
+      mv_seq         <span class="tk">type</span> i,
+      mv_running     <span class="tk">type</span> i,
+      mt_result      <span class="tk">type</span> tt_result,
+      mt_inflight    <span class="tk">type</span> tt_inflight,
+      mt_failed      <span class="tk">type</span> tt_failed.
+
+    <span class="tk">methods</span> init_resource.
+    <span class="tk">methods</span> dispatch    <span class="tk">importing</span> it_chunk <span class="tk">type</span> ty_bookings.
+    <span class="tk">methods</span> fail_task   <span class="tk">importing</span> iv_task <span class="tk">type</span> clike
+                                  iv_msg  <span class="tk">type</span> clike.
+    <span class="tk">methods</span> retry_failed.
+<span class="tk">endclass</span>.</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">zcl_2609_sbook_parallel.clas.abap</span><span class="cnote">구현부 · ABAP 7.54+ · S/4HANA On-Premise</span><button type="button" class="copy" aria-label="zcl_2609_sbook_parallel.clas.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">class</span> zcl_2609_sbook_parallel <span class="tk">implementation</span>.
+
+  <span class="tk">method</span> constructor.
+    mv_function   = iv_function.
+    mv_chunk_size = nmax( val1 = <span class="tn">1</span> val2 = iv_chunk_size ).
+    mv_cfg_tasks  = nmax( val1 = <span class="tn">1</span> val2 = iv_max_tasks ).
+    mv_max_tasks  = mv_cfg_tasks.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> run.
+    <span class="tk">clear</span>: mv_seq, mv_running, mt_result, mt_inflight, mt_failed.
+
+    <span class="tk">check</span> it_data <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+
+    init_resource( ).
+
+    <span class="tk">data</span> lt_chunk <span class="tk">type</span> ty_bookings.
+    <span class="tk">data</span>(lv_total) = <span class="tk">lines</span>( it_data ).
+    <span class="tk">data</span>(lv_from)  = <span class="tn">1</span>.
+
+    <span class="tk">while</span> lv_from &lt;= lv_total.
+      <span class="tk">data</span>(lv_to) = nmin( val1 = lv_from + mv_chunk_size - <span class="tn">1</span>
+                          val2 = lv_total ).
+      lt_chunk = <span class="tk">value</span> #( ( <span class="tk">lines</span> <span class="tk">of</span> it_data <span class="tk">from</span> lv_from <span class="tk">to</span> lv_to ) ).
+      dispatch( lt_chunk ).
+      lv_from += mv_chunk_size.
+    <span class="tk">endwhile</span>.
+
+    <span class="tc">" 남은 태스크 전부 끝날 때까지 대기</span>
+    <span class="tk">wait</span> <span class="tk">until</span> mv_running = <span class="tn">0</span>.
+
+    <span class="tc">" 실패 청크 순차 재처리</span>
+    retry_failed( ).
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> get_result.
+    rt_result = mt_result.
+    <span class="tk">sort</span> rt_result <span class="tk">by</span> task.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> get_summary.
+    rs_summary = <span class="tk">value</span> #(
+      max_wps      = mv_max_wps
+      free_wps     = mv_free_wps
+      applied_wps  = mv_max_tasks
+      tasks        = <span class="tk">lines</span>( mt_result )
+      total_rows   = <span class="tk">reduce</span> i( <span class="tk">init</span> s = <span class="tn">0</span> <span class="tk">for</span> r <span class="tk">in</span> mt_result
+                               <span class="tk">next</span> s = s + r-rows )
+      success_rows = <span class="tk">reduce</span> i( <span class="tk">init</span> s = <span class="tn">0</span> <span class="tk">for</span> r <span class="tk">in</span> mt_result
+                               <span class="tk">where</span> ( status = <span class="ts">'S'</span> ) <span class="tk">next</span> s = s + r-rows )
+      retry_rows   = <span class="tk">reduce</span> i( <span class="tk">init</span> s = <span class="tn">0</span> <span class="tk">for</span> r <span class="tk">in</span> mt_result
+                               <span class="tk">where</span> ( status = <span class="ts">'R'</span> ) <span class="tk">next</span> s = s + r-rows )
+      failed_rows  = <span class="tk">reduce</span> i( <span class="tk">init</span> s = <span class="tn">0</span> <span class="tk">for</span> r <span class="tk">in</span> mt_result
+                               <span class="tk">where</span> ( status = <span class="ts">'E'</span> ) <span class="tk">next</span> s = s + r-rows )
+      failed_tasks = <span class="tk">reduce</span> i( <span class="tk">init</span> s = <span class="tn">0</span> <span class="tk">for</span> r <span class="tk">in</span> mt_result
+                               <span class="tk">where</span> ( status = <span class="ts">'E'</span> ) <span class="tk">next</span> s = s + <span class="tn">1</span> ) ).
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> init_resource.
+    <span class="tk">data</span>: lv_max  <span class="tk">type</span> i,
+          lv_free <span class="tk">type</span> i.
+
+    mv_max_tasks = mv_cfg_tasks.   <span class="tc">" 조회 실패 시 설정값 사용</span>
+
+    <span class="tk">call</span> <span class="tk">function</span> <span class="ts">'SPBT_INITIALIZE'</span>
+      <span class="tk">exporting</span>
+        group_name                     = c_group
+      <span class="tk">importing</span>
+        max_pbt_wps                    = lv_max
+        free_pbt_wps                   = lv_free
+      <span class="tk">exceptions</span>
+        invalid_group_name             = <span class="tn">1</span>
+        internal_error                 = <span class="tn">2</span>
+        pbt_env_already_initialized    = <span class="tn">3</span>
+        currently_no_resources_avail   = <span class="tn">4</span>
+        no_pbt_resources_found         = <span class="tn">5</span>
+        cant_init_different_pbt_groups = <span class="tn">6</span>
+        <span class="tk">others</span>                         = <span class="tn">7</span>.
+
+    <span class="tk">case</span> sy-subrc.
+      <span class="tk">when</span> <span class="tn">0</span>.
+        mv_max_tasks = nmax( val1 = <span class="tn">1</span>
+                             val2 = nmin( val1 = mv_cfg_tasks val2 = lv_free ) ).
+      <span class="tk">when</span> <span class="tn">3</span>.
+        <span class="tc">" 이미 초기화됨 -&gt; 현재 자원 재조회</span>
+        <span class="tk">call</span> <span class="tk">function</span> <span class="ts">'SPBT_GET_CURR_RESOURCE_INFO'</span>
+          <span class="tk">importing</span>
+            max_pbt_wps  = lv_max
+            free_pbt_wps = lv_free
+          <span class="tk">exceptions</span>
+            <span class="tk">others</span>       = <span class="tn">1</span>.
+        <span class="tk">if</span> sy-subrc = <span class="tn">0</span>.
+          mv_max_tasks = nmax( val1 = <span class="tn">1</span>
+                               val2 = nmin( val1 = mv_cfg_tasks val2 = lv_free ) ).
+        <span class="tk">endif</span>.
+      <span class="tk">when</span> <span class="tn">4</span>.
+        mv_max_tasks = <span class="tn">1</span>.     <span class="tc">" 가용 WP 없음 -&gt; 1개씩</span>
+    <span class="tk">endcase</span>.
+
+    mv_max_wps  = lv_max.
+    mv_free_wps = lv_free.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> dispatch.
+    <span class="tk">data</span> lv_msg <span class="tk">type</span> c <span class="tk">length</span> <span class="tn">255</span>.
+
+    <span class="tk">wait</span> <span class="tk">until</span> mv_running &lt; mv_max_tasks.
+
+    mv_seq += <span class="tn">1</span>.
+    <span class="tk">data</span>(lv_task) = <span class="ts">|T{ mv_seq width = 5 align = right pad = '0' }|</span>.
+
+    <span class="tc">" 콜백 실패 시 재처리할 수 있도록 입력 보관</span>
+    <span class="tk">insert</span> <span class="tk">value</span> #( task = lv_task chunk = it_chunk ) <span class="tk">into</span> <span class="tk">table</span> mt_inflight.
+
+    <span class="tk">do</span> c_retry <span class="tk">times</span>.
+      <span class="tk">clear</span> lv_msg.
+      <span class="tk">data</span>(lv_before) = mv_running.
+
+      <span class="tk">call</span> <span class="tk">function</span> mv_function
+        <span class="tk">starting</span> <span class="tk">new</span> task lv_task
+        <span class="tk">destination</span> <span class="tk">in</span> <span class="tk">group</span> <span class="tk">default</span>
+        <span class="tk">calling</span> receive_result <span class="tk">on</span> <span class="tk">end</span> <span class="tk">of</span> task
+        <span class="tk">exporting</span>
+          it_sbook              = it_chunk
+        <span class="tk">exceptions</span>
+          communication_failure = <span class="tn">1</span> <span class="tk">message</span> lv_msg
+          system_failure        = <span class="tn">2</span> <span class="tk">message</span> lv_msg
+          resource_failure      = <span class="tn">3</span>.
+
+      <span class="tk">case</span> sy-subrc.
+        <span class="tk">when</span> <span class="tn">0</span>.
+          mv_running += <span class="tn">1</span>.
+          <span class="tk">return</span>.
+
+        <span class="tk">when</span> <span class="tn">3</span>.
+          <span class="tk">if</span> mv_running &gt; <span class="tn">0</span>.
+            <span class="tc">" 내 태스크 하나 끝나 WP 반환될 때까지 대기</span>
+            <span class="tk">wait</span> <span class="tk">until</span> mv_running &lt; lv_before <span class="tk">up</span> <span class="tk">to</span> c_wait <span class="tk">seconds</span>.
+          <span class="tk">else</span>.
+            <span class="tk">wait</span> <span class="tk">up</span> <span class="tk">to</span> c_wait <span class="tk">seconds</span>.
+            init_resource( ).
+          <span class="tk">endif</span>.
+
+        <span class="tk">when</span> <span class="tk">others</span>.
+          fail_task( iv_task = lv_task iv_msg = lv_msg ).
+          <span class="tk">return</span>.
+      <span class="tk">endcase</span>.
+    <span class="tk">enddo</span>.
+
+    fail_task( iv_task = lv_task iv_msg = <span class="ts">'resource failure (retry 초과)'</span> ).
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> receive_result.
+    <span class="tk">data</span>: ls_result <span class="tk">type</span> ty_result,
+          lv_msg    <span class="tk">type</span> c <span class="tk">length</span> <span class="tn">255</span>.
+
+    ls_result-task = p_task.
+
+    <span class="tk">receive</span> <span class="tk">results</span> <span class="tk">from</span> <span class="tk">function</span> mv_function
+      <span class="tk">importing</span>
+        ev_count              = ls_result-rows
+        ev_cancelled          = ls_result-cancelled
+      <span class="tk">exceptions</span>
+        communication_failure = <span class="tn">1</span> <span class="tk">message</span> lv_msg
+        system_failure        = <span class="tn">2</span> <span class="tk">message</span> lv_msg.
+
+    <span class="tk">if</span> sy-subrc = <span class="tn">0</span>.
+      ls_result-status = <span class="ts">'S'</span>.
+      <span class="tk">append</span> ls_result <span class="tk">to</span> mt_result.
+      <span class="tk">delete</span> mt_inflight <span class="tk">where</span> task = p_task.
+    <span class="tk">else</span>.
+      fail_task( iv_task = p_task iv_msg = lv_msg ).
+    <span class="tk">endif</span>.
+
+    mv_running -= <span class="tn">1</span>.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> fail_task.
+    <span class="tk">read</span> <span class="tk">table</span> mt_inflight <span class="tk">assigning</span> <span class="tk">field</span>-<span class="tk">symbol</span>(&lt;ls_in&gt;)
+         <span class="tk">with</span> <span class="tk">table</span> <span class="tk">key</span> task = iv_task.
+    <span class="tk">if</span> sy-subrc = <span class="tn">0</span>.
+      <span class="tk">append</span> <span class="tk">value</span> #( task  = &lt;ls_in&gt;-task
+                      chunk = &lt;ls_in&gt;-chunk
+                      msg   = iv_msg ) <span class="tk">to</span> mt_failed.
+      <span class="tk">delete</span> mt_inflight <span class="tk">where</span> task = iv_task.
+    <span class="tk">endif</span>.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> retry_failed.
+    <span class="tk">loop</span> <span class="tk">at</span> mt_failed <span class="tk">assigning</span> <span class="tk">field</span>-<span class="tk">symbol</span>(&lt;ls_fail&gt;).
+      <span class="tk">data</span>(ls_result) = <span class="tk">value</span> ty_result( task = &lt;ls_fail&gt;-task
+                                         rows = <span class="tk">lines</span>( &lt;ls_fail&gt;-chunk ) ).
+      <span class="tk">try</span>.
+          <span class="tk">call</span> <span class="tk">function</span> mv_function
+            <span class="tk">exporting</span>
+              it_sbook     = &lt;ls_fail&gt;-chunk
+            <span class="tk">importing</span>
+              ev_count     = ls_result-rows
+              ev_cancelled = ls_result-cancelled.
+          ls_result-status = <span class="ts">'R'</span>.
+          ls_result-msg    = <span class="ts">|재처리 성공 (원인: { &lt;ls_fail&gt;-msg })|</span>.
+        <span class="tk">catch</span> cx_root <span class="tk">into</span> <span class="tk">data</span>(lx_root).
+          ls_result-status = <span class="ts">'E'</span>.
+          ls_result-msg    = <span class="ts">|{ &lt;ls_fail&gt;-msg } / 재처리 실패: { lx_root-&gt;get_text( ) }|</span>.
+      <span class="tk">endtry</span>.
+      <span class="tk">append</span> ls_result <span class="tk">to</span> mt_result.
+    <span class="tk">endloop</span>.
+    <span class="tk">clear</span> mt_failed.
+  <span class="tk">endmethod</span>.
+
+<span class="tk">endclass</span>.</code></pre>
+</figure>
+</section>
+<section id="step3" class="step"><span class="badge" aria-hidden="true">3</span><h2>리포트 · 실행</h2>
+<ul class="pts"><li>데이터 추출은 리포트 책임. <code>lt_all</code> 을 <code>TY_BOOKINGS</code> 로 선언해 청크 · FM 파라미터와 타입을 맞춤</li><li><code>SELECT</code> 는 커서 없이 <code>INTO TABLE</code>. 0건이면 메시지 후 종료</li><li>출력은 <code>get_result( )</code>(태스크별) + <code>get_summary( )</code>(집계). <code>R</code> / <code>E</code> 행의 <code>msg</code> 로 실패 원인을 확인</li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609r0100.prog.abap</span><span class="cnote">Report · ABAP 7.54+ · S/4HANA On-Premise</span><button type="button" class="copy" aria-label="yhl2609r0100.prog.abap 복사">복사</button></figcaption>
+<pre><code><span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp; Report YHL2609R0100</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp; 데이터 조회 + 결과 출력만 담당. 병렬 처리는 ZCL_2609_SBOOK_PARALLEL</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tk">report</span> yhl2609r0100.
+
+<span class="tk">tables</span>: sbook.
+
+<span class="tc">*----------------------------------------------------------------------*</span>
+<span class="tc">* Selection Screen</span>
+<span class="tc">*----------------------------------------------------------------------*</span>
+<span class="tk">selection</span>-<span class="tk">screen</span> <span class="tk">begin</span> <span class="tk">of</span> <span class="tk">block</span> b1 <span class="tk">with</span> <span class="tk">frame</span> <span class="tk">title</span> text-b01.
+  <span class="tk">select</span>-<span class="tk">options</span> s_fldate <span class="tk">for</span> sy-datum <span class="tk">obligatory</span>.
+<span class="tk">selection</span>-<span class="tk">screen</span> <span class="tk">end</span> <span class="tk">of</span> <span class="tk">block</span> b1.
+
+<span class="tc">*----------------------------------------------------------------------*</span>
+<span class="tk">start</span>-<span class="tk">of</span>-<span class="tk">selection</span>.
+
+  <span class="tc">" 1) 데이터 추출 (호출측 책임)</span>
+  <span class="tk">data</span> lt_all <span class="tk">type</span> ty_bookings.
+
+  <span class="tk">select</span> * <span class="tk">from</span> sbook
+   <span class="tk">where</span> fldate <span class="tk">in</span> @s_fldate
+   <span class="tk">order</span> <span class="tk">by</span> <span class="tk">primary</span> <span class="tk">key</span>
+   <span class="tk">into</span> <span class="tk">table</span> @lt_all.
+
+  <span class="tk">if</span> lt_all <span class="tk">is</span> <span class="tk">initial</span>.
+    <span class="tk">message</span> <span class="ts">'조회된 데이터가 없습니다.'</span> <span class="tk">type</span> <span class="ts">'S'</span> <span class="tk">display</span> <span class="tk">like</span> <span class="ts">'W'</span>.
+    <span class="tk">return</span>.
+  <span class="tk">endif</span>.
+
+  <span class="tc">" 2) 병렬 처리 (청크 500건 / 최대 5 WP 는 기본값, 변경 시 생성자 파라미터)</span>
+  <span class="tk">data</span>(lo_runner) = <span class="tk">new</span> zcl_2609_sbook_parallel(
+                          iv_chunk_size = <span class="tn">500</span>
+                          iv_max_tasks  = <span class="tn">5</span> ).
+  lo_runner-&gt;run( lt_all ).
+
+  <span class="tc">" 3) 결과 출력</span>
+  cl_demo_output=&gt;write_data( lo_runner-&gt;get_result( ) ).
+  cl_demo_output=&gt;write_data( lo_runner-&gt;get_summary( ) ).
+  cl_demo_output=&gt;<span class="tk">display</span>( ).</code></pre>
+</figure>
+<h4>get_summary 필드</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>필드</th><th>의미</th></tr></thead><tbody><tr><td><code>max_wps</code> / <code>free_wps</code></td><td>RFC 그룹 최대 WP / 조회 시점 가용 WP</td></tr><tr><td><code>applied_wps</code></td><td>실제 적용한 병렬 수 = min(설정값, 가용 WP), 최소 1</td></tr><tr><td><code>tasks</code></td><td>생성된 태스크 수</td></tr><tr><td><code>total_rows</code></td><td>처리 대상 총 건수 (S + R + E)</td></tr><tr><td><code>success_rows</code> / <code>retry_rows</code> / <code>failed_rows</code></td><td>성공 / 재처리 성공 / 최종 실패 건수</td></tr><tr><td><code>failed_tasks</code></td><td>최종 실패 태스크 수</td></tr><tr><td><code>elapsed_sec</code></td><td>총 소요 시간(초). 4단계에서 추가</td></tr></tbody></table></div>
+</section>
+<section id="step4" class="step"><span class="badge" aria-hidden="true">4</span><h2>소요 시간 측정</h2>
+<ul class="pts"><li><code>GET TIME STAMP</code> + <code>cl_abap_tstmp=&gt;subtract</code> 사용. <code>GET RUN TIME</code> 은 <code>i</code> 형(마이크로초)이라 약 35분을 넘기면 오버플로우가 나서 대량 처리에는 부적합</li><li>클래스만 수정하면 되고 리포트는 그대로. <code>get_summary( )</code> 결과에 <code>elapsed_sec</code> 이 함께 출력됨</li><li>측정 범위는 <code>run</code> 전체. <code>SELECT</code> 시간까지 보려면 리포트에서 <code>select</code> 앞뒤로 같은 방식으로 따로 측정</li><li><code>VALUE #( )</code> 의 필드 목록은 쉼표 없이 줄만 추가</li></ul>
+<h4>1. ty_summary 에 필드 추가 (PUBLIC SECTION)</h4>
+<figure class="code">
+<figcaption><span class="fname">zcl_2609_sbook_parallel — ty_summary</span><span class="cnote">정의부</span><button type="button" class="copy" aria-label="zcl_2609_sbook_parallel — ty_summary 복사">복사</button></figcaption>
+<pre><code>        failed_tasks <span class="tk">type</span> i,
+        elapsed_sec  <span class="tk">type</span> p <span class="tk">length</span> <span class="tn">10</span> <span class="tk">decimals</span> <span class="tn">3</span>,   <span class="tc">" 총 소요 시간(초)</span>
+      <span class="tk">end</span> <span class="tk">of</span> ty_summary.</code></pre>
+</figure>
+<h4>2. 시작 / 종료 시각 attribute 추가 (PRIVATE SECTION)</h4>
+<figure class="code">
+<figcaption><span class="fname">zcl_2609_sbook_parallel — data</span><span class="cnote">정의부</span><button type="button" class="copy" aria-label="zcl_2609_sbook_parallel — data 복사">복사</button></figcaption>
+<pre><code>    <span class="tk">data</span>:
+      <span class="tc">" ... 기존 attribute ...</span>
+      mv_start       <span class="tk">type</span> timestampl,
+      mv_end         <span class="tk">type</span> timestampl.</code></pre>
+</figure>
+<h4>3. run 의 시작과 끝에서 시각 기록</h4>
+<figure class="code">
+<figcaption><span class="fname">zcl_2609_sbook_parallel — run</span><span class="cnote">구현부</span><button type="button" class="copy" aria-label="zcl_2609_sbook_parallel — run 복사">복사</button></figcaption>
+<pre><code>  <span class="tk">method</span> run.
+    <span class="tk">clear</span>: mv_seq, mv_running, mt_result, mt_inflight, mt_failed.
+
+    <span class="tk">get</span> <span class="tk">time</span> <span class="tk">stamp</span> <span class="tk">field</span> mv_start.
+    mv_end = mv_start.                 <span class="tc">" 데이터가 없으면 0초</span>
+
+    <span class="tk">check</span> it_data <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+
+    <span class="tc">" ... init_resource / 청크 분할 / dispatch / wait / retry_failed ...</span>
+
+    retry_failed( ).
+
+    <span class="tk">get</span> <span class="tk">time</span> <span class="tk">stamp</span> <span class="tk">field</span> mv_end.       <span class="tc">" 메서드 맨 끝</span>
+  <span class="tk">endmethod</span>.</code></pre>
+</figure>
+<h4>4. get_summary 에서 경과 시간 계산</h4>
+<figure class="code">
+<figcaption><span class="fname">zcl_2609_sbook_parallel — get_summary</span><span class="cnote">구현부</span><button type="button" class="copy" aria-label="zcl_2609_sbook_parallel — get_summary 복사">복사</button></figcaption>
+<pre><code>  <span class="tk">method</span> get_summary.
+    rs_summary = <span class="tk">value</span> #(
+      <span class="tc">" ... 기존 필드 ...</span>
+      failed_tasks = <span class="tk">reduce</span> i( <span class="tk">init</span> s = <span class="tn">0</span> <span class="tk">for</span> r <span class="tk">in</span> mt_result
+                               <span class="tk">where</span> ( status = <span class="ts">'E'</span> ) <span class="tk">next</span> s = s + <span class="tn">1</span> )
+      elapsed_sec  = cl_abap_tstmp=&gt;subtract( tstmp1 = mv_end
+                                              tstmp2 = mv_start ) ).
+  <span class="tk">endmethod</span>.</code></pre>
+</figure>
+</section>
+<section id="step5" class="step"><span class="badge" aria-hidden="true">5</span><h2>청크 크기 튜닝</h2>
+<ul class="pts"><li><code>500건 × WP 5개</code> 는 "태스크당 500건 · 동시 5개". 500건 패키지를 5개 WP 가 100건씩 나눠 처리하는 의도라면 <code>iv_chunk_size = 100</code></li><li>채택안(A): 고정 크기 청크를 던지고, 끝난 WP 가 다음 청크를 바로 수령 → 5개 WP 가 계속 가동. 코드 변경 없이 호출부 값만 변경</li><li>비채택안(B): 500건 패키지를 5등분하고 패키지마다 전부 끝나길 대기 → 가장 느린 태스크에 맞춰 나머지 WP 가 놂</li><li>청크가 너무 작으면 aRFC 호출 · 콜백 오버헤드, 너무 크면 마지막 태스크만 남는 꼬리 현상과 재처리 비용 증가. <code>elapsed_sec</code> 로 100 / 250 / 500 을 직접 비교</li><li>같은 전표 · 오브젝트를 건드리는 처리는 같은 청크로 묶어야 enqueue 충돌을 피할 수 있음</li></ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>항목</th><th>A. 청크를 큐처럼 (채택)</th><th>B. 패키지 단위 동기화 (비채택)</th></tr></thead><tbody><tr><td>동작</td><td>끝난 WP 가 다음 청크를 즉시 수령</td><td>패키지 내 전부 끝나야 다음 패키지 시작</td></tr><tr><td>WP 가동률</td><td>항상 풀가동</td><td>패키지 끝에서 일부 WP 가 대기</td></tr><tr><td>실패 재처리 단위</td><td>청크(예: 100건)</td><td>태스크(패키지 / WP 수)</td></tr><tr><td>가용 WP 변동</td><td>자동 반영</td><td>패키지 분할 시점에만 반영</td></tr><tr><td>코드 변경</td><td>호출부 파라미터만</td><td><code>run</code> 의 분할 루프 교체</td></tr></tbody></table></div>
+<h4>A. 호출부 (채택)</h4>
+<figure class="code">
+<figcaption><span class="fname">yhl2609r0100.prog.abap — 호출부</span><span class="cnote">Report</span><button type="button" class="copy" aria-label="yhl2609r0100.prog.abap — 호출부 복사">복사</button></figcaption>
+<pre><code><span class="tk">data</span>(lo_runner) = <span class="tk">new</span> zcl_2609_sbook_parallel(
+                        iv_chunk_size = <span class="tn">100</span>     <span class="tc">" 500 -&gt; 100</span>
+                        iv_max_tasks  = <span class="tn">5</span> ).</code></pre>
+</figure>
+<h4>B. 참고용 분할 루프 (비채택)</h4>
+<figure class="code">
+<figcaption><span class="fname">zcl_2609_sbook_parallel — run (대안)</span><span class="cnote">구현부</span><button type="button" class="copy" aria-label="zcl_2609_sbook_parallel — run (대안) 복사">복사</button></figcaption>
+<pre><code>    <span class="tk">while</span> lv_from &lt;= lv_total.
+      <span class="tc">" 패키지 범위 (500건)</span>
+      <span class="tk">data</span>(lv_pkg_to) = nmin( val1 = lv_from + mv_chunk_size - <span class="tn">1</span>
+                              val2 = lv_total ).
+      <span class="tk">data</span>(lv_cnt)    = lv_pkg_to - lv_from + <span class="tn">1</span>.
+
+      <span class="tc">" 태스크당 건수 = 패키지 / 병렬수 (500 / 5 = 100, 올림)</span>
+      <span class="tk">data</span>(lv_part)   = ( lv_cnt + mv_max_tasks - <span class="tn">1</span> ) <span class="tk">div</span> mv_max_tasks.
+
+      <span class="tk">data</span>(lv_p_from) = lv_from.
+      <span class="tk">while</span> lv_p_from &lt;= lv_pkg_to.
+        <span class="tk">data</span>(lv_p_to) = nmin( val1 = lv_p_from + lv_part - <span class="tn">1</span>
+                              val2 = lv_pkg_to ).
+        lt_chunk = <span class="tk">value</span> #( ( <span class="tk">lines</span> <span class="tk">of</span> it_data <span class="tk">from</span> lv_p_from <span class="tk">to</span> lv_p_to ) ).
+        dispatch( lt_chunk ).
+        lv_p_from = lv_p_to + <span class="tn">1</span>.
+      <span class="tk">endwhile</span>.
+
+      <span class="tc">" 패키지 단위 동기화: 전부 끝나야 다음 패키지</span>
+      <span class="tk">wait</span> <span class="tk">until</span> mv_running = <span class="tn">0</span>.
+
+      lv_from = lv_pkg_to + <span class="tn">1</span>.
+    <span class="tk">endwhile</span>.</code></pre>
+</figure>
+</section>
+<section id="trouble" class="step"><span class="badge" aria-hidden="true">6</span><h2>막혔던 지점 정리</h2>
+<div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody><tr><td><code>Inline data declarations are possible only if projection list, INDICATORS clause, and FROM clause are specified statically and all host variables are typed as non-generic.</code></td><td><code>FETCH NEXT CURSOR ... INTO TABLE @DATA(lt_chunk)</code>. 커서로 연 SELECT 는 FETCH 시점에 결과 구조를 정적으로 알 수 없어 인라인 선언 불가</td><td><code>DATA lt_chunk TYPE ...</code> 로 미리 선언. 이후 커서 방식 자체를 폐기</td></tr><tr><td>덤프 <code>DBSQL_INVALID_CURSOR</code> (<code>CX_SY_OPEN_SQL_DB</code>) — Cursor already closed or not open yet. 첫 청크 디스패치 이후 <code>FETCH</code> 에서 발생</td><td>aRFC 디스패치 / <code>WAIT UNTIL</code> 에서 Work Process 전환이 일어나 DB 커서가 닫힘. <code>OPEN CURSOR WITH HOLD</code> 로도 동일</td><td>커서 제거. <code>SELECT INTO TABLE</code> 로 선조회 후 <code>LINES OF ... FROM ... TO</code> 로 메모리에서 분할</td></tr><tr><td>실패 태스크 44개 (22,000건). 총 179 태스크 / 89,307건 중 일부 청크가 통째로 누락</td><td><code>resource_failure</code> 후 <code>WAIT UNTIL mv_running &lt; c_tasks UP TO 5 SECONDS</code> 의 조건이 이미 참이라 대기 없이 통과 → 3회 재시도가 즉시 소진 (에러 메시지 확인 전의 추정 원인)</td><td>내 태스크가 있으면 <code>mv_running &lt; lv_before</code> 까지 대기, 없으면 3초 고정 대기, 재시도 20회. 끝까지 실패한 청크는 <code>mt_inflight</code> → <code>mt_failed</code> → 순차 재처리. 수정 후 정상 동작 확인</td></tr><tr><td>병렬 수를 5로 고정하면 서버 가용 WP 가 부족할 때 <code>resource_failure</code> 반복</td><td>서버 상황과 무관한 고정값</td><td><code>SPBT_INITIALIZE</code> 로 가용 WP 조회 후 <code>min(설정값, 가용)</code> 적용 (최소 1). 이미 초기화된 경우(예외 3)는 <code>SPBT_GET_CURR_RESOURCE_INFO</code> 로 재조회</td></tr><tr><td>"500건 패키지를 5 WP 가 100건씩"으로 기대했으나 태스크당 500건으로 동작</td><td>청크 크기 = 태스크당 처리 건수. 병렬 수와는 별개의 값</td><td><code>iv_chunk_size = 100</code>, <code>iv_max_tasks = 5</code> (5단계 참고)</td></tr></tbody></table></div>
+</section>
+</main>
+</div>
+<footer>SBOOK 병렬 처리 데모 · 2026-10-10 · ABAP 7.54+ · S/4HANA On-Premise · 테스트 환경에서 검증 후 적용</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
