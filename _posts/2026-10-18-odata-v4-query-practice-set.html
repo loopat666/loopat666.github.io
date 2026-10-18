@@ -1,0 +1,1487 @@
+---
+layout: post
+categories: [RAP]
+tags: [RAP]
+title: "OData V4 쿼리 실습 정리"
+description: "OData V4 쿼리 실습 정리"
+date: 2026-10-18 20:22:20 +0900
+---
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>OData V4 쿼리 실습 세트</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>[문서 제목]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+
+.cnote{flex:1;min-width:0}
+figcaption{flex-wrap:wrap}
+.b-ok{color:#13804A;font-weight:600}.b-warn{color:#B45309;font-weight:600}.b-no{color:#B3261E;font-weight:600}
+p.watch{margin:0;padding:8px 16px 10px;border-top:1px dashed var(--line);font-size:13.5px;color:var(--muted);line-height:1.55}
+p.watch::before{content:"확인 포인트 · ";font-weight:600;color:var(--accent)}
+.qg{margin:0 0 4px}
+.qg figure.code{margin-bottom:10px}
+.qg figure.code.sub{margin-left:22px;margin-top:-4px}
+.hide{display:none!important}
+input.cfgin{width:100%;font-family:var(--mono);font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+input.cfgin:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+table.grid td code{white-space:nowrap}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>OData V4 쿼리 실습 세트</h1>
+<p>항공사/항공편 수신 API(ZSRV_YHL2609_0010)에 맞춘 쿼리 166개. 설정에 엔티티·필드명을 한 번 넣으면 전부 자동 치환되고, 복사 버튼으로 Bruno에 바로 붙여넣을 수 있다.</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="단계"><ol><li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li><li><a href="#settings"><span class="num">1</span><span class="lbl">내 서비스 설정</span></a></li><li><a href="#g2"><span class="num">2</span><span class="lbl">워밍업</span></a></li><li><a href="#g3"><span class="num">3</span><span class="lbl">$select</span></a></li><li><a href="#g4"><span class="num">4</span><span class="lbl">$filter 기본</span></a></li><li><a href="#g5"><span class="num">5</span><span class="lbl">$filter 문자열 함수</span></a></li><li><a href="#g6"><span class="num">6</span><span class="lbl">$filter 날짜 함수</span></a></li><li><a href="#g7"><span class="num">7</span><span class="lbl">$filter 숫자 함수·산술</span></a></li><li><a href="#g8"><span class="num">8</span><span class="lbl">$orderby</span></a></li><li><a href="#g9"><span class="num">9</span><span class="lbl">페이징</span></a></li><li><a href="#g10"><span class="num">10</span><span class="lbl">$count 총정리</span></a></li><li><a href="#g11"><span class="num">11</span><span class="lbl">$expand</span></a></li><li><a href="#g12"><span class="num">12</span><span class="lbl">네비게이션 경로 · any / all</span></a></li><li><a href="#g13"><span class="num">13</span><span class="lbl">$search · $apply · $compute</span></a></li><li><a href="#g14"><span class="num">14</span><span class="lbl">헤더로 바꾸는 응답 모양</span></a></li><li><a href="#g15"><span class="num">15</span><span class="lbl">실무 복합 시나리오</span></a></li><li><a href="#g16"><span class="num">16</span><span class="lbl">수신 API(ImpData) 검증 세트</span></a></li><li><a href="#g17"><span class="num">17</span><span class="lbl">일부러 깨뜨리기</span></a></li><li><a href="#g18"><span class="num">18</span><span class="lbl">$batch</span></a></li><li><a href="#trouble"><span class="num">19</span><span class="lbl">막혔던 지점 정리</span></a></li></ol></nav>
+<main><section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2>
+<ul class="pts"><li>항공사(헤더) + 항공편(아이템) 수신 API에 맞춘 OData V4 쿼리 <b>166개</b>를 복붙용으로 모은 실습 세트</li><li>설정 단계에서 엔티티셋·필드명·GUID를 한 번만 넣으면 모든 쿼리가 자동으로 치환됨</li><li>워밍업 → 필터 → 정렬/페이징 → expand → 복합 시나리오 → 수신 검증 → 에러 실습 순서</li></ul>
+<ol class="flow" aria-label="사용 흐름">
+<li><b>$metadata</b><span>이름 확인</span></li>
+<li><b>설정 입력</b><span>엔티티·필드·GUID</span></li>
+<li><b>쿼리 복사</b><span>복사 버튼</span></li>
+<li><b>Bruno 호출</b><span>GET / POST</span></li>
+<li><b>응답 확인</b><span>확인 포인트 대조</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>표시</th><th>의미</th><th>대응</th></tr></thead><tbody>
+<tr><td><span class="b-ok">✅ 기본</span></td><td>대체로 그대로 동작</td><td>그대로 호출</td></tr>
+<tr><td><span class="b-warn">⚠️ 환경따라</span></td><td>서비스 구현·릴리스·어노테이션에 따라 안 될 수 있음</td><td>안 되면 서비스가 안 받는 것. 그 자체가 학습 포인트</td></tr>
+<tr><td><span class="b-no">❌ 에러 실습</span></td><td>일부러 깨뜨리는 쿼리</td><td>상태코드·메시지를 눈으로 확인 (코드는 서비스마다 다를 수 있음)</td></tr>
+</tbody></table></div>
+<h4>쿼리 검색</h4>
+<input type="search" id="q" class="cfgin" placeholder="예: expand, any, guid, 400 ..." aria-label="쿼리 검색">
+</section><section id="settings" class="step"><span class="badge" aria-hidden="true">1</span><h2>내 서비스 설정</h2>
+<ul class="pts"><li>기본값은 예시이므로 <code>/$metadata</code> 첫 호출 결과를 보고 실제 이름으로 바꿔 넣기</li><li>GUID는 키 필드에 따옴표 없이 들어가고, NUMC(SEQ)는 따옴표가 붙어서 치환됨</li><li>입력값은 이 브라우저에 저장되고, 아래 모든 쿼리에 즉시 반영됨</li></ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>항목</th><th>토큰</th><th>값</th></tr></thead><tbody>
+<tr><td>서비스 루트 (BASE)</td><td><code>{BASE}</code></td><td><input class="cfgin" data-k="BASE" value="https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001" aria-label="서비스 루트 (BASE)"></td></tr>
+<tr><td>액션 네임스페이스</td><td><code>{NS}</code></td><td><input class="cfgin" data-k="NS" value="com.sap.gateway.srvd.zsrv_yhl2609_0010.v0001" aria-label="액션 네임스페이스"></td></tr>
+<tr><td>헤더 엔티티셋</td><td><code>{H}</code></td><td><input class="cfgin" data-k="H" value="Airline" aria-label="헤더 엔티티셋"></td></tr>
+<tr><td>아이템 엔티티셋</td><td><code>{I}</code></td><td><input class="cfgin" data-k="I" value="Flight" aria-label="아이템 엔티티셋"></td></tr>
+<tr><td>헤더→아이템 association</td><td><code>{NAV}</code></td><td><input class="cfgin" data-k="NAV" value="_Flight" aria-label="헤더→아이템 association"></td></tr>
+<tr><td>아이템→헤더 association</td><td><code>{PARENT}</code></td><td><input class="cfgin" data-k="PARENT" value="_Airline" aria-label="아이템→헤더 association"></td></tr>
+<tr><td>헤더 키 필드 (UUID)</td><td><code>{HKEY}</code></td><td><input class="cfgin" data-k="HKEY" value="airline_key" aria-label="헤더 키 필드 (UUID)"></td></tr>
+<tr><td>헤더 텍스트 필드</td><td><code>{HNAME}</code></td><td><input class="cfgin" data-k="HNAME" value="airline_name" aria-label="헤더 텍스트 필드"></td></tr>
+<tr><td>헤더 국가 필드</td><td><code>{HCTRY}</code></td><td><input class="cfgin" data-k="HCTRY" value="country" aria-label="헤더 국가 필드"></td></tr>
+<tr><td>아이템 키 필드 (NUMC)</td><td><code>{IKEY}</code></td><td><input class="cfgin" data-k="IKEY" value="airline_seq" aria-label="아이템 키 필드 (NUMC)"></td></tr>
+<tr><td>아이템 문자 필드</td><td><code>{ICODE}</code></td><td><input class="cfgin" data-k="ICODE" value="connection_id" aria-label="아이템 문자 필드"></td></tr>
+<tr><td>아이템 숫자 필드</td><td><code>{IPRICE}</code></td><td><input class="cfgin" data-k="IPRICE" value="price" aria-label="아이템 숫자 필드"></td></tr>
+<tr><td>아이템 날짜 필드(Edm.Date)</td><td><code>{IDATE}</code></td><td><input class="cfgin" data-k="IDATE" value="flight_date" aria-label="아이템 날짜 필드(Edm.Date)"></td></tr>
+<tr><td>테스트용 헤더 GUID (실존 값)</td><td><code>{GUID}</code></td><td><input class="cfgin" data-k="GUID" value="00000000-0000-0000-0000-000000000000" aria-label="테스트용 헤더 GUID (실존 값)"></td></tr>
+<tr><td>테스트용 아이템 SEQ</td><td><code>{SEQ}</code></td><td><input class="cfgin" data-k="SEQ" value="0001" aria-label="테스트용 아이템 SEQ"></td></tr>
+<tr><td>테스트용 국가값</td><td><code>{CTRY}</code></td><td><input class="cfgin" data-k="CTRY" value="KR" aria-label="테스트용 국가값"></td></tr>
+</tbody></table></div></section><section id="g2" class="step"><span class="badge" aria-hidden="true">2</span><h2>워밍업 — 서비스 지도부터 보기</h2>
+<ul class="pts"><li>식당 들어가면 메뉴판부터 보죠? <code>$metadata</code>가 메뉴판이에요. 여기서 엔티티셋 이름과 필드명을 확정하세요.</li></ul>
+<div class="qg" data-s="서비스 루트 (엔티티셋 목록) / value 배열에 엔티티셋 이름이 나와요. 위 설정의 h, i를 여기서 확정 ">
+<figure class="code">
+<figcaption><span class="fname">2-1</span><span class="cnote">서비스 루트 (엔티티셋 목록) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="서비스 루트 (엔티티셋 목록) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/</code></pre>
+<p class="watch">value 배열에 엔티티셋 이름이 나와요. 위 설정의 H, I를 여기서 확정</p>
+</figure>
+</div>
+<div class="qg" data-s="$metadata (설계도 전체) /$metadata key / property / navigationproperty / action 이름 확인. 설정값은 전부 여기서 복사 ">
+<figure class="code">
+<figcaption><span class="fname">2-2</span><span class="cnote">$metadata (설계도 전체) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="$metadata (설계도 전체) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/$metadata"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/<span class="ta">$metadata</span></code></pre>
+<p class="watch">Key / Property / NavigationProperty / Action 이름 확인. 설정값은 전부 여기서 복사</p>
+</figure>
+</div>
+<div class="qg" data-s="헤더 1건 맛보기 /{h}?$top=1 응답 모양, 키 필드 형태(guid), @odata.context 확인 ">
+<figure class="code">
+<figcaption><span class="fname">2-3</span><span class="cnote">헤더 1건 맛보기 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="헤더 1건 맛보기 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=1"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=<span class="tn">1</span></code></pre>
+<p class="watch">응답 모양, 키 필드 형태(GUID), @odata.context 확인</p>
+</figure>
+</div>
+<div class="qg" data-s="아이템 1건 맛보기 /{i}?$top=1 아이템 키가 airline_key + airline_seq 복합키인지 확인 ">
+<figure class="code">
+<figcaption><span class="fname">2-4</span><span class="cnote">아이템 1건 맛보기 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="아이템 1건 맛보기 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$top=1"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$top</span>=<span class="tn">1</span></code></pre>
+<p class="watch">아이템 키가 airline_key + airline_seq 복합키인지 확인</p>
+</figure>
+</div>
+<div class="qg" data-s="헤더 총 건수 (숫자만) /{h}/$count json이 아니라 숫자 하나만 옴 ">
+<figure class="code">
+<figcaption><span class="fname">2-5</span><span class="cnote">헤더 총 건수 (숫자만) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="헤더 총 건수 (숫자만) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline/<span class="ta">$count</span></code></pre>
+<p class="watch">JSON이 아니라 숫자 하나만 옴</p>
+</figure>
+</div>
+<div class="qg" data-s="아이템 총 건수 (숫자만) /{i}/$count impdata 호출 전/후 비교용 ">
+<figure class="code">
+<figcaption><span class="fname">2-6</span><span class="cnote">아이템 총 건수 (숫자만) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="아이템 총 건수 (숫자만) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight/<span class="ta">$count</span></code></pre>
+<p class="watch">ImpData 호출 전/후 비교용</p>
+</figure>
+</div>
+<div class="qg" data-s="건수만 받고 데이터는 0건 /{h}?$top=0&amp;$count=true value는 [] , @odata.count만 옴. 목록 헤더에 &quot;총 n건&quot;만 필요할 때 ">
+<figure class="code">
+<figcaption><span class="fname">2-7</span><span class="cnote">건수만 받고 데이터는 0건 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="건수만 받고 데이터는 0건 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=0&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=<span class="tn">0</span>&amp;<span class="ta">$count</span>=true</code></pre>
+<p class="watch">value는 [] , @odata.count만 옴. 목록 헤더에 "총 N건"만 필요할 때</p>
+</figure>
+</div>
+</section><section id="g3" class="step"><span class="badge" aria-hidden="true">3</span><h2>$select — 필요한 컬럼만</h2>
+<ul class="pts"><li>치킨 시키는데 냅킨·포크·무까지 전부 달라고 하지 말고 필요한 것만 달라는 거예요.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="컬럼 2개만 /{h}?$select={hkey},{hname}&amp;$top=5 나머지 필드가 응답에서 사라짐 ">
+<figure class="code">
+<figcaption><span class="fname">3-1</span><span class="cnote">컬럼 2개만 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="컬럼 2개만 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select={HKEY},{HNAME}&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=airline_key,airline_name&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+<p class="watch">나머지 필드가 응답에서 사라짐</p>
+</figure>
+</div>
+<div class="qg" data-s="키 없이 텍스트만 /{h}?$select={hname}&amp;$top=5 키가 같이 오는지 확인 (서비스 구현에 따라 다름) ">
+<figure class="code">
+<figcaption><span class="fname">3-2</span><span class="cnote">키 없이 텍스트만 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="키 없이 텍스트만 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select={HNAME}&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=airline_name&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+<p class="watch">키가 같이 오는지 확인 (서비스 구현에 따라 다름)</p>
+</figure>
+</div>
+<div class="qg" data-s="전부 (명시적) /{h}?$select=*&amp;$top=2 $select 생략과 같은 결과 ">
+<figure class="code">
+<figcaption><span class="fname">3-3</span><span class="cnote">전부 (명시적) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="전부 (명시적) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select=*&amp;$top=2"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=*&amp;<span class="ta">$top</span>=<span class="tn">2</span></code></pre>
+<p class="watch">$select 생략과 같은 결과</p>
+</figure>
+</div>
+<div class="qg" data-s="아이템 3컬럼 /{i}?$select={ikey},{iprice},{idate}&amp;$top=5  ">
+<figure class="code">
+<figcaption><span class="fname">3-4</span><span class="cnote">아이템 3컬럼 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="아이템 3컬럼 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$select={IKEY},{IPRICE},{IDATE}&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$select</span>=airline_seq,price,flight_date&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="단건 + select /{h}({hkey}={guid})?$select={hname},{hctry} 키로 바로 접근 (guid는 따옴표 없음!) ">
+<figure class="code">
+<figcaption><span class="fname">3-5</span><span class="cnote">단건 + select · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="단건 + select 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})?$select={HNAME},{HCTRY}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)?<span class="ta">$select</span>=airline_name,country</code></pre>
+<p class="watch">키로 바로 접근 (GUID는 따옴표 없음!)</p>
+</figure>
+</div>
+<div class="qg" data-s="단일 프로퍼티 직접 접근 /{h}({hkey}={guid})/{hname} { &quot;value&quot;: &quot;...&quot; } 형태로 값 하나만 ">
+<figure class="code">
+<figcaption><span class="fname">3-6</span><span class="cnote">단일 프로퍼티 직접 접근 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="단일 프로퍼티 직접 접근 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{HNAME}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/airline_name</code></pre>
+<p class="watch">{ "value": "..." } 형태로 값 하나만</p>
+</figure>
+</div>
+<div class="qg" data-s="단일 프로퍼티 raw 값 /{h}({hkey}={guid})/{hname}/$value json 아닌 순수 텍스트 ">
+<figure class="code">
+<figcaption><span class="fname">3-7</span><span class="cnote">단일 프로퍼티 raw 값 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="단일 프로퍼티 raw 값 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{HNAME}/$value"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/airline_name/<span class="ta">$value</span></code></pre>
+<p class="watch">JSON 아닌 순수 텍스트</p>
+</figure>
+</div>
+</section><section id="g4" class="step"><span class="badge" aria-hidden="true">4</span><h2>$filter 기본 — WHERE절</h2>
+<ul class="pts"><li>연산자는 기호가 아니라 영어 소문자: eq ne gt ge lt le and or not in</li></ul>
+<div class="qg" data-s="문자열 eq /{h}?$filter={hctry} eq '{ctry}' 문자열은 작은따옴표 ">
+<figure class="code">
+<figcaption><span class="fname">4-1</span><span class="cnote">문자열 eq · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="문자열 eq 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HCTRY} eq '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=country <span class="tk">eq</span> <span class="ts">'KR'</span></code></pre>
+<p class="watch">문자열은 작은따옴표</p>
+</figure>
+</div>
+<div class="qg" data-s="ne (다르다) /{h}?$filter={hctry} ne '{ctry}'  ">
+<figure class="code">
+<figcaption><span class="fname">4-2</span><span class="cnote">ne (다르다) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="ne (다르다) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HCTRY} ne '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=country <span class="tk">ne</span> <span class="ts">'KR'</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="guid eq ⭐ /{h}?$filter={hkey} eq {guid} guid는 따옴표 ❌ 없음. 따옴표 붙이면 400 (에러 실습 참고) ">
+<figure class="code">
+<figcaption><span class="fname">4-3</span><span class="cnote">GUID eq ⭐ · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="GUID eq ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HKEY} eq {GUID}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=airline_key <span class="tk">eq</span> 00000000-0000-0000-0000-000000000000</code></pre>
+<p class="watch">GUID는 따옴표 ❌ 없음. 따옴표 붙이면 400 (에러 실습 참고)</p>
+</figure>
+</div>
+<div class="qg" data-s="복합키 단건 ⭐ /{i}({hkey}={guid},{ikey}='{seq}') numc는 edm.string이라 seq엔 따옴표 ✅, guid엔 ❌ ">
+<figure class="code">
+<figcaption><span class="fname">4-4</span><span class="cnote">복합키 단건 ⭐ · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="복합키 단건 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}({HKEY}={GUID},{IKEY}='{SEQ}')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight(airline_key=00000000-0000-0000-0000-000000000000,airline_seq=<span class="ts">'0001'</span>)</code></pre>
+<p class="watch">NUMC는 Edm.String이라 SEQ엔 따옴표 ✅, GUID엔 ❌</p>
+</figure>
+</div>
+<div class="qg" data-s="numc 필터 /{i}?$filter={ikey} eq '{seq}'  ">
+<figure class="code">
+<figcaption><span class="fname">4-5</span><span class="cnote">NUMC 필터 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="NUMC 필터 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IKEY} eq '{SEQ}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=airline_seq <span class="tk">eq</span> <span class="ts">'0001'</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="숫자 gt /{i}?$filter={iprice} gt 500 숫자는 따옴표 없음 ">
+<figure class="code">
+<figcaption><span class="fname">4-6</span><span class="cnote">숫자 gt · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="숫자 gt 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} gt 500"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price <span class="tk">gt</span> <span class="tn">500</span></code></pre>
+<p class="watch">숫자는 따옴표 없음</p>
+</figure>
+</div>
+<div class="qg" data-s="숫자 ge /{i}?$filter={iprice} ge 500  ">
+<figure class="code">
+<figcaption><span class="fname">4-7</span><span class="cnote">숫자 ge · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="숫자 ge 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} ge 500"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price <span class="tk">ge</span> <span class="tn">500</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="숫자 lt /{i}?$filter={iprice} lt 500  ">
+<figure class="code">
+<figcaption><span class="fname">4-8</span><span class="cnote">숫자 lt · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="숫자 lt 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} lt 500"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price <span class="tk">lt</span> <span class="tn">500</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="숫자 le /{i}?$filter={iprice} le 500  ">
+<figure class="code">
+<figcaption><span class="fname">4-9</span><span class="cnote">숫자 le · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="숫자 le 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} le 500"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price <span class="tk">le</span> <span class="tn">500</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="범위 (and) /{i}?$filter={iprice} ge 100 and {iprice} le 500 between 대신 and 두 개 ">
+<figure class="code">
+<figcaption><span class="fname">4-10</span><span class="cnote">범위 (and) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="범위 (and) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} ge 100 and {IPRICE} le 500"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price <span class="tk">ge</span> <span class="tn">100</span> <span class="tk">and</span> price <span class="tk">le</span> <span class="tn">500</span></code></pre>
+<p class="watch">BETWEEN 대신 and 두 개</p>
+</figure>
+</div>
+<div class="qg" data-s="or /{h}?$filter={hctry} eq 'kr' or {hctry} eq 'jp'  ">
+<figure class="code">
+<figcaption><span class="fname">4-11</span><span class="cnote">or · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="or 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HCTRY} eq 'KR' or {HCTRY} eq 'JP'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=country <span class="tk">eq</span> <span class="ts">'KR'</span> <span class="tk">or</span> country <span class="tk">eq</span> <span class="ts">'JP'</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="괄호로 우선순위 /{i}?$filter=({iprice} lt 100 or {iprice} gt 900) and {ikey} ne '0001' 괄호 빼면 and가 먼저 묶여서 결과가 달라짐 ">
+<figure class="code">
+<figcaption><span class="fname">4-12</span><span class="cnote">괄호로 우선순위 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="괄호로 우선순위 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=({IPRICE} lt 100 or {IPRICE} gt 900) and {IKEY} ne '0001'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=(price <span class="tk">lt</span> <span class="tn">100</span> <span class="tk">or</span> price <span class="tk">gt</span> <span class="tn">900</span>) <span class="tk">and</span> airline_seq <span class="tk">ne</span> <span class="ts">'0001'</span></code></pre>
+<p class="watch">괄호 빼면 and가 먼저 묶여서 결과가 달라짐</p>
+</figure>
+</div>
+<div class="qg" data-s="not /{h}?$filter=not({hctry} eq 'kr') not 뒤엔 괄호 ">
+<figure class="code">
+<figcaption><span class="fname">4-13</span><span class="cnote">not · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="not 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=not({HCTRY} eq 'KR')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=<span class="tk">not</span>(country <span class="tk">eq</span> <span class="ts">'KR'</span>)</code></pre>
+<p class="watch">not 뒤엔 괄호</p>
+</figure>
+</div>
+<div class="qg" data-s="in 목록 /{h}?$filter={hctry} in ('kr','jp','us') sql의 in ">
+<figure class="code">
+<figcaption><span class="fname">4-14</span><span class="cnote">in 목록 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="in 목록 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HCTRY} in ('KR','JP','US')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=country <span class="tk">in</span> (<span class="ts">'KR'</span>,<span class="ts">'JP'</span>,<span class="ts">'US'</span>)</code></pre>
+<p class="watch">SQL의 IN</p>
+</figure>
+</div>
+<div class="qg" data-s="null 체크 (eq) /{h}?$filter={hname} eq null abap 초기값('')은 null이 아닐 수 있음 → 다음 카드와 비교 ">
+<figure class="code">
+<figcaption><span class="fname">4-15</span><span class="cnote">null 체크 (eq) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="null 체크 (eq) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HNAME} eq null"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=airline_name <span class="tk">eq</span> <span class="tk">null</span></code></pre>
+<p class="watch">ABAP 초기값('')은 null이 아닐 수 있음 → 다음 카드와 비교</p>
+</figure>
+</div>
+<div class="qg" data-s="빈 문자열 체크 /{h}?$filter={hname} eq '' 위와 건수 비교해보기 ">
+<figure class="code">
+<figcaption><span class="fname">4-16</span><span class="cnote">빈 문자열 체크 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="빈 문자열 체크 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HNAME} eq ''"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=airline_name <span class="tk">eq</span> <span class="ts">''</span></code></pre>
+<p class="watch">위와 건수 비교해보기</p>
+</figure>
+</div>
+<div class="qg" data-s="null 아닌 것 /{h}?$filter={hname} ne null  ">
+<figure class="code">
+<figcaption><span class="fname">4-17</span><span class="cnote">null 아닌 것 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="null 아닌 것 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HNAME} ne null"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=airline_name <span class="tk">ne</span> <span class="tk">null</span></code></pre>
+</figure>
+</div>
+</section><section id="g5" class="step"><span class="badge" aria-hidden="true">5</span><h2>$filter 문자열 함수</h2>
+<ul class="pts"><li>SQL의 UPPER/SUBSTRING/LIKE 같은 걸 URL 안에서 쓰는 거예요.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="contains (포함) /{h}?$filter=contains({hname},'air') like '%air%' ">
+<figure class="code">
+<figcaption><span class="fname">5-1</span><span class="cnote">contains (포함) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="contains (포함) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=contains({HNAME},'Air')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=contains(airline_name,<span class="ts">'Air'</span>)</code></pre>
+<p class="watch">LIKE '%Air%'</p>
+</figure>
+</div>
+<div class="qg" data-s="startswith /{h}?$filter=startswith({hname},'ko') like 'ko%' ">
+<figure class="code">
+<figcaption><span class="fname">5-2</span><span class="cnote">startswith · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="startswith 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=startswith({HNAME},'Ko')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=startswith(airline_name,<span class="ts">'Ko'</span>)</code></pre>
+<p class="watch">LIKE 'Ko%'</p>
+</figure>
+</div>
+<div class="qg" data-s="endswith /{h}?$filter=endswith({hname},'lines') like '%lines' ">
+<figure class="code">
+<figcaption><span class="fname">5-3</span><span class="cnote">endswith · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="endswith 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=endswith({HNAME},'lines')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=endswith(airline_name,<span class="ts">'lines'</span>)</code></pre>
+<p class="watch">LIKE '%lines'</p>
+</figure>
+</div>
+<div class="qg" data-s="대소문자 무시 ⭐ /{h}?$filter=contains(tolower({hname}),'air') 필드 쪽을 tolower로 감싸고, 검색어는 소문자로 ">
+<figure class="code">
+<figcaption><span class="fname">5-4</span><span class="cnote">대소문자 무시 ⭐ · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="대소문자 무시 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=contains(tolower({HNAME}),'air')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=contains(tolower(airline_name),<span class="ts">'air'</span>)</code></pre>
+<p class="watch">필드 쪽을 tolower로 감싸고, 검색어는 소문자로</p>
+</figure>
+</div>
+<div class="qg" data-s="toupper /{h}?$filter=toupper({hname}) eq 'korean air'  ">
+<figure class="code">
+<figcaption><span class="fname">5-5</span><span class="cnote">toupper · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="toupper 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=toupper({HNAME}) eq 'KOREAN AIR'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=toupper(airline_name) <span class="tk">eq</span> <span class="ts">'KOREAN AIR'</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="length /{h}?$filter=length({hname}) gt 10 이름 10자 초과 ">
+<figure class="code">
+<figcaption><span class="fname">5-6</span><span class="cnote">length · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="length 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=length({HNAME}) gt 10"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=length(airline_name) <span class="tk">gt</span> <span class="tn">10</span></code></pre>
+<p class="watch">이름 10자 초과</p>
+</figure>
+</div>
+<div class="qg" data-s="substring (0부터!) /{i}?$filter=substring({icode},0,2) eq 'ke' 1부터가 아니라 0부터 시작 ">
+<figure class="code">
+<figcaption><span class="fname">5-7</span><span class="cnote">substring (0부터!) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="substring (0부터!) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=substring({ICODE},0,2) eq 'KE'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=substring(connection_id,<span class="tn">0</span>,<span class="tn">2</span>) <span class="tk">eq</span> <span class="ts">'KE'</span></code></pre>
+<p class="watch">1부터가 아니라 0부터 시작</p>
+</figure>
+</div>
+<div class="qg" data-s="concat /{i}?$filter=concat({hkey},{icode}) ne ''  ">
+<figure class="code">
+<figcaption><span class="fname">5-8</span><span class="cnote">concat · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="concat 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=concat({HKEY},{ICODE}) ne ''"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=concat(airline_key,connection_id) <span class="tk">ne</span> <span class="ts">''</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="trim /{h}?$filter=trim({hname}) eq 'korean air' 앞뒤 공백 무시 비교 ">
+<figure class="code">
+<figcaption><span class="fname">5-9</span><span class="cnote">trim · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="trim 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=trim({HNAME}) eq 'Korean Air'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=trim(airline_name) <span class="tk">eq</span> <span class="ts">'Korean Air'</span></code></pre>
+<p class="watch">앞뒤 공백 무시 비교</p>
+</figure>
+</div>
+<div class="qg" data-s="indexof /{h}?$filter=indexof({hname},'air') ge 0 없으면 -1 ">
+<figure class="code">
+<figcaption><span class="fname">5-10</span><span class="cnote">indexof · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="indexof 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=indexof({HNAME},'Air') ge 0"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=indexof(airline_name,<span class="ts">'Air'</span>) <span class="tk">ge</span> <span class="tn">0</span></code></pre>
+<p class="watch">없으면 -1</p>
+</figure>
+</div>
+<div class="qg" data-s="함수 + and 조합 /{h}?$filter=contains(tolower({hname}),'air') and {hctry} eq '{ctry}'  ">
+<figure class="code">
+<figcaption><span class="fname">5-11</span><span class="cnote">함수 + and 조합 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="함수 + and 조합 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=contains(tolower({HNAME}),'air') and {HCTRY} eq '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=contains(tolower(airline_name),<span class="ts">'air'</span>) <span class="tk">and</span> country <span class="tk">eq</span> <span class="ts">'KR'</span></code></pre>
+</figure>
+</div>
+</section><section id="g6" class="step"><span class="badge" aria-hidden="true">6</span><h2>$filter 날짜 함수 (Edm.Date)</h2>
+<ul class="pts"><li>Edm.Date는 따옴표 없이 2026-10-18. V2의 datetime'...' 습관 버리세요.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="특정일 /{i}?$filter={idate} eq 2026-10-18 따옴표 ❌ ">
+<figure class="code">
+<figcaption><span class="fname">6-1</span><span class="cnote">특정일 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="특정일 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IDATE} eq 2026-10-18"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=flight_date <span class="tk">eq</span> 2026-10-18</code></pre>
+<p class="watch">따옴표 ❌</p>
+</figure>
+</div>
+<div class="qg" data-s="기간 범위 /{i}?$filter={idate} ge 2026-10-01 and {idate} le 2026-10-31  ">
+<figure class="code">
+<figcaption><span class="fname">6-2</span><span class="cnote">기간 범위 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="기간 범위 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IDATE} ge 2026-10-01 and {IDATE} le 2026-10-31"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=flight_date <span class="tk">ge</span> 2026-10-01 <span class="tk">and</span> flight_date <span class="tk">le</span> 2026-10-31</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="year() /{i}?$filter=year({idate}) eq 2026  ">
+<figure class="code">
+<figcaption><span class="fname">6-3</span><span class="cnote">year() · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="year() 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=year({IDATE}) eq 2026"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=year(flight_date) <span class="tk">eq</span> <span class="tn">2026</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="year + month /{i}?$filter=year({idate}) eq 2026 and month({idate}) eq 10  ">
+<figure class="code">
+<figcaption><span class="fname">6-4</span><span class="cnote">year + month · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="year + month 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=year({IDATE}) eq 2026 and month({IDATE}) eq 10"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=year(flight_date) <span class="tk">eq</span> <span class="tn">2026</span> <span class="tk">and</span> month(flight_date) <span class="tk">eq</span> <span class="tn">10</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="day() /{i}?$filter=day({idate}) eq 18  ">
+<figure class="code">
+<figcaption><span class="fname">6-5</span><span class="cnote">day() · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="day() 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=day({IDATE}) eq 18"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=day(flight_date) <span class="tk">eq</span> <span class="tn">18</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="분기 흉내 (month 범위) /{i}?$filter=month({idate}) ge 10 and month({idate}) le 12  ">
+<figure class="code">
+<figcaption><span class="fname">6-6</span><span class="cnote">분기 흉내 (month 범위) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="분기 흉내 (month 범위) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=month({IDATE}) ge 10 and month({IDATE}) le 12"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=month(flight_date) <span class="tk">ge</span> <span class="tn">10</span> <span class="tk">and</span> month(flight_date) <span class="tk">le</span> <span class="tn">12</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="오늘 이후 (now 함수) /{i}?$filter={idate} ge date(now()) date(now())는 환경에 따라 미지원 ">
+<figure class="code">
+<figcaption><span class="fname">6-7</span><span class="cnote">오늘 이후 (now 함수) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="오늘 이후 (now 함수) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IDATE} ge date(now())"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=flight_date <span class="tk">ge</span> date(now())</code></pre>
+<p class="watch">date(now())는 환경에 따라 미지원</p>
+</figure>
+</div>
+</section><section id="g7" class="step"><span class="badge" aria-hidden="true">7</span><h2>$filter 숫자 함수·산술</h2>
+<ul class="pts"><li>계산식도 URL에 쓸 수 있어요. add sub mul div mod</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="round /{i}?$filter=round({iprice}) eq 500  ">
+<figure class="code">
+<figcaption><span class="fname">7-1</span><span class="cnote">round · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="round 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=round({IPRICE}) eq 500"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=round(price) <span class="tk">eq</span> <span class="tn">500</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="floor /{i}?$filter=floor({iprice}) ge 100  ">
+<figure class="code">
+<figcaption><span class="fname">7-2</span><span class="cnote">floor · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="floor 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=floor({IPRICE}) ge 100"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=floor(price) <span class="tk">ge</span> <span class="tn">100</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="ceiling /{i}?$filter=ceiling({iprice}) le 1000  ">
+<figure class="code">
+<figcaption><span class="fname">7-3</span><span class="cnote">ceiling · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="ceiling 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter=ceiling({IPRICE}) le 1000"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=ceiling(price) <span class="tk">le</span> <span class="tn">1000</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="mul (곱) /{i}?$filter={iprice} mul 2 gt 1000  ">
+<figure class="code">
+<figcaption><span class="fname">7-4</span><span class="cnote">mul (곱) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="mul (곱) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} mul 2 gt 1000"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price mul <span class="tn">2</span> <span class="tk">gt</span> <span class="tn">1000</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="div (나눗셈) /{i}?$filter={iprice} div 2 lt 100 div는 소수 나눗셈, divby 와 구분 ">
+<figure class="code">
+<figcaption><span class="fname">7-5</span><span class="cnote">div (나눗셈) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="div (나눗셈) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} div 2 lt 100"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price div <span class="tn">2</span> <span class="tk">lt</span> <span class="tn">100</span></code></pre>
+<p class="watch">div는 소수 나눗셈, divby 와 구분</p>
+</figure>
+</div>
+<div class="qg" data-s="mod (나머지) /{i}?$filter={iprice} mod 2 eq 0  ">
+<figure class="code">
+<figcaption><span class="fname">7-6</span><span class="cnote">mod (나머지) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="mod (나머지) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} mod 2 eq 0"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price mod <span class="tn">2</span> <span class="tk">eq</span> <span class="tn">0</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="add / sub /{i}?$filter={iprice} add 100 gt 600 and {iprice} sub 50 lt 500  ">
+<figure class="code">
+<figcaption><span class="fname">7-7</span><span class="cnote">add / sub · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="add / sub 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} add 100 gt 600 and {IPRICE} sub 50 lt 500"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price add <span class="tn">100</span> <span class="tk">gt</span> <span class="tn">600</span> <span class="tk">and</span> price sub <span class="tn">50</span> <span class="tk">lt</span> <span class="tn">500</span></code></pre>
+</figure>
+</div>
+</section><section id="g8" class="step"><span class="badge" aria-hidden="true">8</span><h2>$orderby — 정렬</h2>
+<ul class="pts"><li>기본은 asc. 페이징할 땐 정렬이 사실상 필수예요.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="오름차순 /{i}?$orderby={iprice}&amp;$top=5  ">
+<figure class="code">
+<figcaption><span class="fname">8-1</span><span class="cnote">오름차순 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="오름차순 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={IPRICE}&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=price&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="내림차순 /{i}?$orderby={iprice} desc&amp;$top=5  ">
+<figure class="code">
+<figcaption><span class="fname">8-2</span><span class="cnote">내림차순 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="내림차순 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={IPRICE} desc&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=price <span class="tk">desc</span>&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="다중 정렬 /{i}?$orderby={hkey},{iprice} desc&amp;$top=10 콤마 구분 ">
+<figure class="code">
+<figcaption><span class="fname">8-3</span><span class="cnote">다중 정렬 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="다중 정렬 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={HKEY},{IPRICE} desc&amp;$top=10"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=airline_key,price <span class="tk">desc</span>&amp;<span class="ta">$top</span>=<span class="tn">10</span></code></pre>
+<p class="watch">콤마 구분</p>
+</figure>
+</div>
+<div class="qg" data-s="정렬 + select /{i}?$select={ikey},{iprice}&amp;$orderby={iprice} desc&amp;$top=5  ">
+<figure class="code">
+<figcaption><span class="fname">8-4</span><span class="cnote">정렬 + select · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="정렬 + select 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$select={IKEY},{IPRICE}&amp;$orderby={IPRICE} desc&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$select</span>=airline_seq,price&amp;<span class="ta">$orderby</span>=price <span class="tk">desc</span>&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="부모 필드로 정렬 ⭐ /{i}?$orderby={parent}/{hname}&amp;$top=10 to-one 네비게이션 경로로 정렬 ">
+<figure class="code">
+<figcaption><span class="fname">8-5</span><span class="cnote">부모 필드로 정렬 ⭐ · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="부모 필드로 정렬 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={PARENT}/{HNAME}&amp;$top=10"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=_Airline/airline_name&amp;<span class="ta">$top</span>=<span class="tn">10</span></code></pre>
+<p class="watch">to-one 네비게이션 경로로 정렬</p>
+</figure>
+</div>
+<div class="qg" data-s="필터 + 정렬 /{i}?$filter={iprice} gt 100&amp;$orderby={idate} desc&amp;$top=10  ">
+<figure class="code">
+<figcaption><span class="fname">8-6</span><span class="cnote">필터 + 정렬 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="필터 + 정렬 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IPRICE} gt 100&amp;$orderby={IDATE} desc&amp;$top=10"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=price <span class="tk">gt</span> <span class="tn">100</span>&amp;<span class="ta">$orderby</span>=flight_date <span class="tk">desc</span>&amp;<span class="ta">$top</span>=<span class="tn">10</span></code></pre>
+</figure>
+</div>
+</section><section id="g9" class="step"><span class="badge" aria-hidden="true">9</span><h2>페이징 — $top / $skip / 서버 페이징</h2>
+<ul class="pts"><li><code>$skip</code> = (페이지번호 − 1) × 페이지크기. 유튜브 '다음 페이지'의 정체.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="1페이지 (10건) /{i}?$orderby={hkey},{ikey}&amp;$top=10&amp;$skip=0&amp;$count=true 정렬 키를 고정해야 페이지가 안 섞임 ">
+<figure class="code">
+<figcaption><span class="fname">9-1</span><span class="cnote">1페이지 (10건) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="1페이지 (10건) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={HKEY},{IKEY}&amp;$top=10&amp;$skip=0&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=airline_key,airline_seq&amp;<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$skip</span>=<span class="tn">0</span>&amp;<span class="ta">$count</span>=true</code></pre>
+<p class="watch">정렬 키를 고정해야 페이지가 안 섞임</p>
+</figure>
+</div>
+<div class="qg" data-s="2페이지 /{i}?$orderby={hkey},{ikey}&amp;$top=10&amp;$skip=10&amp;$count=true  ">
+<figure class="code">
+<figcaption><span class="fname">9-2</span><span class="cnote">2페이지 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="2페이지 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={HKEY},{IKEY}&amp;$top=10&amp;$skip=10&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=airline_key,airline_seq&amp;<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$skip</span>=<span class="tn">10</span>&amp;<span class="ta">$count</span>=true</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="3페이지 /{i}?$orderby={hkey},{ikey}&amp;$top=10&amp;$skip=20&amp;$count=true  ">
+<figure class="code">
+<figcaption><span class="fname">9-3</span><span class="cnote">3페이지 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="3페이지 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={HKEY},{IKEY}&amp;$top=10&amp;$skip=20&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=airline_key,airline_seq&amp;<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$skip</span>=<span class="tn">20</span>&amp;<span class="ta">$count</span>=true</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="정렬 없이 페이징 (비교용) /{i}?$top=10&amp;$skip=10 정렬 없는 페이징은 순서 보장 ❌. 위 2페이지와 결과 비교 ">
+<figure class="code">
+<figcaption><span class="fname">9-4</span><span class="cnote">정렬 없이 페이징 (비교용) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="정렬 없이 페이징 (비교용) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$top=10&amp;$skip=10"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$skip</span>=<span class="tn">10</span></code></pre>
+<p class="watch">정렬 없는 페이징은 순서 보장 ❌. 위 2페이지와 결과 비교</p>
+</figure>
+</div>
+<div class="qg" data-s="범위 초과 skip /{i}?$skip=999999&amp;$top=10&amp;$count=true value는 [] , count는 정상. 에러 아님 ">
+<figure class="code">
+<figcaption><span class="fname">9-5</span><span class="cnote">범위 초과 skip · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="범위 초과 skip 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$skip=999999&amp;$top=10&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$skip</span>=<span class="tn">999999</span>&amp;<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$count</span>=true</code></pre>
+<p class="watch">value는 [] , count는 정상. 에러 아님</p>
+</figure>
+</div>
+<div class="qg" data-s="마지막 페이지 확인 /{i}?$orderby={hkey},{ikey}&amp;$top=10&amp;$skip=90&amp;$count=true 남은 건수만큼만 옴 ">
+<figure class="code">
+<figcaption><span class="fname">9-6</span><span class="cnote">마지막 페이지 확인 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="마지막 페이지 확인 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={HKEY},{IKEY}&amp;$top=10&amp;$skip=90&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=airline_key,airline_seq&amp;<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$skip</span>=<span class="tn">90</span>&amp;<span class="ta">$count</span>=true</code></pre>
+<p class="watch">남은 건수만큼만 옴</p>
+</figure>
+</div>
+<div class="qg" data-s="서버 페이징 ⭐ /{i}?$orderby={hkey},{ikey} prefer 헤더에 odata.maxpagesize=5 추가 → 응답 끝에 @odata.nextlink 나오면 그대로 호출 prefer: odata.maxpagesize=5">
+<figure class="code">
+<figcaption><span class="fname">9-7</span><span class="cnote">서버 페이징 ⭐ · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="서버 페이징 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={HKEY},{IKEY}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=airline_key,airline_seq</code></pre>
+<p class="watch">Prefer 헤더에 odata.maxpagesize=5 추가 → 응답 끝에 @odata.nextLink 나오면 그대로 호출</p>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">헤더</span><span class="cnote">요청 헤더</span><button type="button" class="copy" aria-label="서버 페이징 ⭐ 헤더 복사">복사</button></figcaption>
+<pre><code data-kind="hdr" data-m="" data-tpl="Prefer: odata.maxpagesize=5"><span class="tkey">Prefer</span>: odata.maxpagesize=5</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="nextlink 따라가기 (위 응답의 @odata.nextlink 값 그대로) 토큰 해석 금지, 그대로 get ">
+<figure class="code">
+<figcaption><span class="fname">9-8</span><span class="cnote">nextLink 따라가기 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="nextLink 따라가기 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="(위 응답의 @odata.nextLink 값 그대로)"><span class="tc">(위 응답의 @odata.nextLink 값 그대로)</span></code></pre>
+<p class="watch">토큰 해석 금지, 그대로 GET</p>
+</figure>
+</div>
+</section><section id="g10" class="step"><span class="badge" aria-hidden="true">10</span><h2>$count 총정리</h2>
+<ul class="pts"><li>두 가지 용법이 헷갈려요: /<code>$count</code> (숫자만) vs ?<code>$count</code>=true (데이터 + 건수).</li></ul>
+<div class="qg" data-s="경로 방식 /{h}/$count 숫자만 ">
+<figure class="code">
+<figcaption><span class="fname">10-1</span><span class="cnote">경로 방식 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="경로 방식 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline/<span class="ta">$count</span></code></pre>
+<p class="watch">숫자만</p>
+</figure>
+</div>
+<div class="qg" data-s="경로 방식 + 필터 /{h}/$count?$filter={hctry} eq '{ctry}' 필터 적용된 건수 ">
+<figure class="code">
+<figcaption><span class="fname">10-2</span><span class="cnote">경로 방식 + 필터 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="경로 방식 + 필터 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}/$count?$filter={HCTRY} eq '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline/<span class="ta">$count</span>?<span class="ta">$filter</span>=country <span class="tk">eq</span> <span class="ts">'KR'</span></code></pre>
+<p class="watch">필터 적용된 건수</p>
+</figure>
+</div>
+<div class="qg" data-s="쿼리 방식 /{h}?$count=true&amp;$top=3 @odata.count + value 3건 ">
+<figure class="code">
+<figcaption><span class="fname">10-3</span><span class="cnote">쿼리 방식 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="쿼리 방식 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$count=true&amp;$top=3"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$count</span>=true&amp;<span class="ta">$top</span>=<span class="tn">3</span></code></pre>
+<p class="watch">@odata.count + value 3건</p>
+</figure>
+</div>
+<div class="qg" data-s="쿼리 방식 + 필터 /{h}?$count=true&amp;$filter={hctry} eq '{ctry}'&amp;$top=3 @odata.count는 $top 무관, 필터 적용 후 총 건수 ">
+<figure class="code">
+<figcaption><span class="fname">10-4</span><span class="cnote">쿼리 방식 + 필터 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="쿼리 방식 + 필터 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$count=true&amp;$filter={HCTRY} eq '{CTRY}'&amp;$top=3"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$count</span>=true&amp;<span class="ta">$filter</span>=country <span class="tk">eq</span> <span class="ts">'KR'</span>&amp;<span class="ta">$top</span>=<span class="tn">3</span></code></pre>
+<p class="watch">@odata.count는 $top 무관, 필터 적용 후 총 건수</p>
+</figure>
+</div>
+<div class="qg" data-s="특정 헤더의 아이템 수 ⭐ /{h}({hkey}={guid})/{nav}/$count impdata 후 &quot;이 항공사 항공편 몇 건 들어왔나&quot; 검증용 ">
+<figure class="code">
+<figcaption><span class="fname">10-5</span><span class="cnote">특정 헤더의 아이템 수 ⭐ · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="특정 헤더의 아이템 수 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight/<span class="ta">$count</span></code></pre>
+<p class="watch">ImpData 후 "이 항공사 항공편 몇 건 들어왔나" 검증용</p>
+</figure>
+</div>
+<div class="qg" data-s="아이템 수 (쿼리 방식) /{h}({hkey}={guid})/{nav}?$count=true&amp;$top=0  ">
+<figure class="code">
+<figcaption><span class="fname">10-6</span><span class="cnote">아이템 수 (쿼리 방식) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="아이템 수 (쿼리 방식) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}?$count=true&amp;$top=0"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight?<span class="ta">$count</span>=true&amp;<span class="ta">$top</span>=<span class="tn">0</span></code></pre>
+</figure>
+</div>
+</section><section id="g11" class="step"><span class="badge" aria-hidden="true">11</span><h2>$expand — JOIN (중첩 JSON)</h2>
+<ul class="pts"><li>헤더 하나 가져오고 아이템 따로 또 호출? 한 방에 가져오는 게 <code>$expand</code>. 괄호 안 구분자는 세미콜론(;)!</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li><li>❌ 표시는 일부러 에러를 내는 실습 — 상태코드와 메시지를 비교</li></ul>
+<div class="qg" data-s="기본 expand /{h}?$expand={nav}&amp;$top=2 각 헤더 안에 아이템 배열 ">
+<figure class="code">
+<figcaption><span class="fname">11-1</span><span class="cnote">기본 expand · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="기본 expand 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}&amp;$top=2"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight&amp;<span class="ta">$top</span>=<span class="tn">2</span></code></pre>
+<p class="watch">각 헤더 안에 아이템 배열</p>
+</figure>
+</div>
+<div class="qg" data-s="단건 + expand /{h}({hkey}={guid})?$expand={nav} object page 패턴 ">
+<figure class="code">
+<figcaption><span class="fname">11-2</span><span class="cnote">단건 + expand · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="단건 + expand 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})?$expand={NAV}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)?<span class="ta">$expand</span>=_Flight</code></pre>
+<p class="watch">Object Page 패턴</p>
+</figure>
+</div>
+<div class="qg" data-s="expand + select (자식) /{h}?$expand={nav}($select={ikey},{iprice})&amp;$top=2 괄호 안 select ">
+<figure class="code">
+<figcaption><span class="fname">11-3</span><span class="cnote">expand + select (자식) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="expand + select (자식) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}($select={IKEY},{IPRICE})&amp;$top=2"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight(<span class="ta">$select</span>=airline_seq,price)&amp;<span class="ta">$top</span>=<span class="tn">2</span></code></pre>
+<p class="watch">괄호 안 select</p>
+</figure>
+</div>
+<div class="qg" data-s="부모 select + 자식 select /{h}?$select={hkey},{hname}&amp;$expand={nav}($select={ikey},{iprice})&amp;$top=2  ">
+<figure class="code">
+<figcaption><span class="fname">11-4</span><span class="cnote">부모 select + 자식 select · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="부모 select + 자식 select 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select={HKEY},{HNAME}&amp;$expand={NAV}($select={IKEY},{IPRICE})&amp;$top=2"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=airline_key,airline_name&amp;<span class="ta">$expand</span>=_Flight(<span class="ta">$select</span>=airline_seq,price)&amp;<span class="ta">$top</span>=<span class="tn">2</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="자식 필터 /{h}?$expand={nav}($filter={iprice} gt 500)&amp;$top=3 부모는 그대로, 자식만 걸러짐 ">
+<figure class="code">
+<figcaption><span class="fname">11-5</span><span class="cnote">자식 필터 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="자식 필터 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}($filter={IPRICE} gt 500)&amp;$top=3"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight(<span class="ta">$filter</span>=price <span class="tk">gt</span> <span class="tn">500</span>)&amp;<span class="ta">$top</span>=<span class="tn">3</span></code></pre>
+<p class="watch">부모는 그대로, 자식만 걸러짐</p>
+</figure>
+</div>
+<div class="qg" data-s="자식 정렬 /{h}?$expand={nav}($orderby={iprice} desc)&amp;$top=3  ">
+<figure class="code">
+<figcaption><span class="fname">11-6</span><span class="cnote">자식 정렬 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="자식 정렬 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}($orderby={IPRICE} desc)&amp;$top=3"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight(<span class="ta">$orderby</span>=price <span class="tk">desc</span>)&amp;<span class="ta">$top</span>=<span class="tn">3</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="자식 top (최저가 1건) ⭐ /{h}?$expand={nav}($orderby={iprice};$top=1;$select={ikey},{iprice})&amp;$top=3 ; 로 이어붙임 ">
+<figure class="code">
+<figcaption><span class="fname">11-7</span><span class="cnote">자식 top (최저가 1건) ⭐ · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="자식 top (최저가 1건) ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}($orderby={IPRICE};$top=1;$select={IKEY},{IPRICE})&amp;$top=3"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight(<span class="ta">$orderby</span>=price;<span class="ta">$top</span>=<span class="tn">1</span>;<span class="ta">$select</span>=airline_seq,price)&amp;<span class="ta">$top</span>=<span class="tn">3</span></code></pre>
+<p class="watch">; 로 이어붙임</p>
+</figure>
+</div>
+<div class="qg" data-s="자식 필터+정렬+select /{h}?$expand={nav}($filter={iprice} gt 100;$orderby={iprice} desc;$select={ikey},{iprice};$top=3)&amp;$top=2  ">
+<figure class="code">
+<figcaption><span class="fname">11-8</span><span class="cnote">자식 필터+정렬+select · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="자식 필터+정렬+select 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}($filter={IPRICE} gt 100;$orderby={IPRICE} desc;$select={IKEY},{IPRICE};$top=3)&amp;$top=2"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight(<span class="ta">$filter</span>=price <span class="tk">gt</span> <span class="tn">100</span>;<span class="ta">$orderby</span>=price <span class="tk">desc</span>;<span class="ta">$select</span>=airline_seq,price;<span class="ta">$top</span>=<span class="tn">3</span>)&amp;<span class="ta">$top</span>=<span class="tn">2</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="아이템에서 부모 펼치기 /{i}?$expand={parent}($select={hname})&amp;$top=5 to-one 방향 expand ">
+<figure class="code">
+<figcaption><span class="fname">11-9</span><span class="cnote">아이템에서 부모 펼치기 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="아이템에서 부모 펼치기 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$expand={PARENT}($select={HNAME})&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$expand</span>=_Airline(<span class="ta">$select</span>=airline_name)&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+<p class="watch">to-one 방향 expand</p>
+</figure>
+</div>
+<div class="qg" data-s="와일드카드 (탐색용) /{h}?$expand=*&amp;$top=1 운영에선 금지, 구조 파악용 ">
+<figure class="code">
+<figcaption><span class="fname">11-10</span><span class="cnote">와일드카드 (탐색용) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="와일드카드 (탐색용) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand=*&amp;$top=1"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=*&amp;<span class="ta">$top</span>=<span class="tn">1</span></code></pre>
+<p class="watch">운영에선 금지, 구조 파악용</p>
+</figure>
+</div>
+<div class="qg" data-s="전체 건수 + expand /{h}?$expand={nav}&amp;$count=true&amp;$top=2  ">
+<figure class="code">
+<figcaption><span class="fname">11-11</span><span class="cnote">전체 건수 + expand · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="전체 건수 + expand 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}&amp;$count=true&amp;$top=2"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight&amp;<span class="ta">$count</span>=true&amp;<span class="ta">$top</span>=<span class="tn">2</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="⚠️ expand 안의 $count /{h}?$expand={nav}($count=true)&amp;$top=2 이 서비스에선 미지원 확인됨 (/iwbep/cm_v4s_run/004). 대안은 아래 카드 ">
+<figure class="code">
+<figcaption><span class="fname">11-12</span><span class="cnote">⚠️ expand 안의 $count · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="⚠️ expand 안의 $count 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}($count=true)&amp;$top=2"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight(<span class="ta">$count</span>=true)&amp;<span class="ta">$top</span>=<span class="tn">2</span></code></pre>
+<p class="watch">이 서비스에선 미지원 확인됨 (/IWBEP/CM_V4S_RUN/004). 대안은 아래 카드</p>
+</figure>
+</div>
+<div class="qg" data-s="대안: 헤더별 건수는 별도 호출 /{h}({hkey}={guid})/{nav}/$count expand 안 $count 대신 이렇게 ">
+<figure class="code">
+<figcaption><span class="fname">11-13</span><span class="cnote">대안: 헤더별 건수는 별도 호출 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="대안: 헤더별 건수는 별도 호출 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight/<span class="ta">$count</span></code></pre>
+<p class="watch">expand 안 $count 대신 이렇게</p>
+</figure>
+</div>
+</section><section id="g12" class="step"><span class="badge" aria-hidden="true">12</span><h2>네비게이션 경로 · any / all (부모 거르기)</h2>
+<ul class="pts"><li>expand+filter는 '자식만' 거르고, any()는 '부모 자체'를 거릅니다. 치킨집 목록은 그대로+2만원 넘는 메뉴만 vs 2만원 넘는 메뉴가 있는 치킨집만.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="경로로 자식 목록 /{h}({hkey}={guid})/{nav} 한 헤더의 아이템만 ">
+<figure class="code">
+<figcaption><span class="fname">12-1</span><span class="cnote">경로로 자식 목록 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="경로로 자식 목록 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight</code></pre>
+<p class="watch">한 헤더의 아이템만</p>
+</figure>
+</div>
+<div class="qg" data-s="경로 + 필터 /{h}({hkey}={guid})/{nav}?$filter={iprice} gt 500  ">
+<figure class="code">
+<figcaption><span class="fname">12-2</span><span class="cnote">경로 + 필터 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="경로 + 필터 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}?$filter={IPRICE} gt 500"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight?<span class="ta">$filter</span>=price <span class="tk">gt</span> <span class="tn">500</span></code></pre>
+</figure>
+</div>
+<div class="qg" data-s="경로 + 정렬 + 페이징 /{h}({hkey}={guid})/{nav}?$orderby={ikey}&amp;$top=10&amp;$skip=0&amp;$count=true object page 테이블 요청 모양 ">
+<figure class="code">
+<figcaption><span class="fname">12-3</span><span class="cnote">경로 + 정렬 + 페이징 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="경로 + 정렬 + 페이징 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}?$orderby={IKEY}&amp;$top=10&amp;$skip=0&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight?<span class="ta">$orderby</span>=airline_seq&amp;<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$skip</span>=<span class="tn">0</span>&amp;<span class="ta">$count</span>=true</code></pre>
+<p class="watch">Object Page 테이블 요청 모양</p>
+</figure>
+</div>
+<div class="qg" data-s="경로 단건 (복합키) /{h}({hkey}={guid})/{nav}({hkey}={guid},{ikey}='{seq}')  ">
+<figure class="code">
+<figcaption><span class="fname">12-4</span><span class="cnote">경로 단건 (복합키) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="경로 단건 (복합키) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}({HKEY}={GUID},{IKEY}='{SEQ}')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight(airline_key=00000000-0000-0000-0000-000000000000,airline_seq=<span class="ts">'0001'</span>)</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="부모 필드로 아이템 거르기 ⭐ /{i}?$filter={parent}/{hctry} eq '{ctry}' join 안 짜고 한 줄 (to-one만) ">
+<figure class="code">
+<figcaption><span class="fname">12-5</span><span class="cnote">부모 필드로 아이템 거르기 ⭐ · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="부모 필드로 아이템 거르기 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={PARENT}/{HCTRY} eq '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=_Airline/country <span class="tk">eq</span> <span class="ts">'KR'</span></code></pre>
+<p class="watch">JOIN 안 짜고 한 줄 (to-one만)</p>
+</figure>
+</div>
+<div class="qg" data-s="any — 조건 만족 자식이 있는 부모 ⭐ /{h}?$filter={nav}/any(f:f/{iprice} gt 1000) sql exists ">
+<figure class="code">
+<figcaption><span class="fname">12-6</span><span class="cnote">any — 조건 만족 자식이 있는 부모 ⭐ · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="any — 조건 만족 자식이 있는 부모 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={NAV}/any(f:f/{IPRICE} gt 1000)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=_Flight/<span class="tk">any</span>(f:f/price <span class="tk">gt</span> <span class="tn">1000</span>)</code></pre>
+<p class="watch">SQL EXISTS</p>
+</figure>
+</div>
+<div class="qg" data-s="any — 조건 없이 (자식 있는 부모) /{h}?$filter={nav}/any() 아이템이 1건이라도 있는 헤더 ">
+<figure class="code">
+<figcaption><span class="fname">12-7</span><span class="cnote">any — 조건 없이 (자식 있는 부모) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="any — 조건 없이 (자식 있는 부모) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={NAV}/any()"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=_Flight/<span class="tk">any</span>()</code></pre>
+<p class="watch">아이템이 1건이라도 있는 헤더</p>
+</figure>
+</div>
+<div class="qg" data-s="not any — 자식 없는 부모 ⭐ /{h}?$filter=not {nav}/any() impdata 후 &quot;아이템 안 붙은 고아 헤더&quot; 찾기 ">
+<figure class="code">
+<figcaption><span class="fname">12-8</span><span class="cnote">not any — 자식 없는 부모 ⭐ · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="not any — 자식 없는 부모 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=not {NAV}/any()"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=<span class="tk">not</span> _Flight/<span class="tk">any</span>()</code></pre>
+<p class="watch">ImpData 후 "아이템 안 붙은 고아 헤더" 찾기</p>
+</figure>
+</div>
+<div class="qg" data-s="all — 전부 만족 /{h}?$filter={nav}/all(f:f/{iprice} gt 0) 자식 0건인 부모도 true로 잡힘 (수학적으로 공집합 참) ">
+<figure class="code">
+<figcaption><span class="fname">12-9</span><span class="cnote">all — 전부 만족 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="all — 전부 만족 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={NAV}/all(f:f/{IPRICE} gt 0)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=_Flight/<span class="tk">all</span>(f:f/price <span class="tk">gt</span> <span class="tn">0</span>)</code></pre>
+<p class="watch">자식 0건인 부모도 true로 잡힘 (수학적으로 공집합 참)</p>
+</figure>
+</div>
+<div class="qg" data-s="any + expand 같이 /{h}?$filter={nav}/any(f:f/{iprice} gt 500)&amp;$expand={nav}($filter={iprice} gt 500) 부모 거르고, 보여줄 자식도 거르기. 실무 단골 ">
+<figure class="code">
+<figcaption><span class="fname">12-10</span><span class="cnote">any + expand 같이 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="any + expand 같이 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={NAV}/any(f:f/{IPRICE} gt 500)&amp;$expand={NAV}($filter={IPRICE} gt 500)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=_Flight/<span class="tk">any</span>(f:f/price <span class="tk">gt</span> <span class="tn">500</span>)&amp;<span class="ta">$expand</span>=_Flight(<span class="ta">$filter</span>=price <span class="tk">gt</span> <span class="tn">500</span>)</code></pre>
+<p class="watch">부모 거르고, 보여줄 자식도 거르기. 실무 단골</p>
+</figure>
+</div>
+</section><section id="g13" class="step"><span class="badge" aria-hidden="true">13</span><h2>$search · $apply · $compute (서비스가 지원해야 함)</h2>
+<ul class="pts"><li>여기부터는 CDS 어노테이션/서비스 구현에 달려 있어요. 안 되면 '내 서비스가 안 받는구나' 하고 확인하는 용도.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="$search 단어 /{h}?$search=air @search.searchable 없으면 400/무반응 ">
+<figure class="code">
+<figcaption><span class="fname">13-1</span><span class="cnote">$search 단어 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$search 단어 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$search=Air"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$search</span>=Air</code></pre>
+<p class="watch">@Search.searchable 없으면 400/무반응</p>
+</figure>
+</div>
+<div class="qg" data-s="$search and/or /{h}?$search=korean or asiana and/or/not은 대문자 ">
+<figure class="code">
+<figcaption><span class="fname">13-2</span><span class="cnote">$search AND/OR · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$search AND/OR 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$search=Korean OR Asiana"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$search</span>=Korean OR Asiana</code></pre>
+<p class="watch">AND/OR/NOT은 대문자</p>
+</figure>
+</div>
+<div class="qg" data-s="$search 문구 /{h}?$search=&quot;korean air&quot; 따옴표 = 문구 그대로 ">
+<figure class="code">
+<figcaption><span class="fname">13-3</span><span class="cnote">$search 문구 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$search 문구 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$search=&quot;Korean Air&quot;"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$search</span>=<span class="ts">"Korean Air"</span></code></pre>
+<p class="watch">따옴표 = 문구 그대로</p>
+</figure>
+</div>
+<div class="qg" data-s="$apply groupby 건수 /{i}?$apply=groupby(({hkey}),aggregate($count as cnt)) 헤더별 아이템 수. 집계 미지원이면 에러 ">
+<figure class="code">
+<figcaption><span class="fname">13-4</span><span class="cnote">$apply groupby 건수 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$apply groupby 건수 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$apply=groupby(({HKEY}),aggregate($count as Cnt))"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$apply</span>=groupby((airline_key),aggregate(<span class="ta">$count</span> <span class="tk">as</span> Cnt))</code></pre>
+<p class="watch">헤더별 아이템 수. 집계 미지원이면 에러</p>
+</figure>
+</div>
+<div class="qg" data-s="$apply 합계/평균 /{i}?$apply=groupby(({hkey}),aggregate({iprice} with sum as total,{iprice} with average as avg))  ">
+<figure class="code">
+<figcaption><span class="fname">13-5</span><span class="cnote">$apply 합계/평균 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$apply 합계/평균 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$apply=groupby(({HKEY}),aggregate({IPRICE} with sum as Total,{IPRICE} with average as Avg))"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$apply</span>=groupby((airline_key),aggregate(price <span class="tk">with</span> sum <span class="tk">as</span> Total,price <span class="tk">with</span> average <span class="tk">as</span> Avg))</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="$apply 최대/최소 /{i}?$apply=aggregate({iprice} with max as mx,{iprice} with min as mn)  ">
+<figure class="code">
+<figcaption><span class="fname">13-6</span><span class="cnote">$apply 최대/최소 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$apply 최대/최소 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$apply=aggregate({IPRICE} with max as Mx,{IPRICE} with min as Mn)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$apply</span>=aggregate(price <span class="tk">with</span> max <span class="tk">as</span> Mx,price <span class="tk">with</span> min <span class="tk">as</span> Mn)</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="$apply countdistinct /{i}?$apply=aggregate({hkey} with countdistinct as headercnt) count(distinct) ">
+<figure class="code">
+<figcaption><span class="fname">13-7</span><span class="cnote">$apply countdistinct · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$apply countdistinct 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$apply=aggregate({HKEY} with countdistinct as HeaderCnt)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$apply</span>=aggregate(airline_key <span class="tk">with</span> countdistinct <span class="tk">as</span> HeaderCnt)</code></pre>
+<p class="watch">COUNT(DISTINCT)</p>
+</figure>
+</div>
+<div class="qg" data-s="$apply filter→groupby /{i}?$apply=filter({iprice} gt 100)/groupby(({hkey}),aggregate({iprice} with sum as total)) / 로 파이프처럼 연결 ">
+<figure class="code">
+<figcaption><span class="fname">13-8</span><span class="cnote">$apply filter→groupby · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$apply filter→groupby 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$apply=filter({IPRICE} gt 100)/groupby(({HKEY}),aggregate({IPRICE} with sum as Total))"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$apply</span>=filter(price <span class="tk">gt</span> <span class="tn">100</span>)/groupby((airline_key),aggregate(price <span class="tk">with</span> sum <span class="tk">as</span> Total))</code></pre>
+<p class="watch">/ 로 파이프처럼 연결</p>
+</figure>
+</div>
+<div class="qg" data-s="$apply + orderby + top /{i}?$apply=groupby(({hkey}),aggregate({iprice} with sum as total))&amp;$orderby=total desc&amp;$top=3 top 3 ">
+<figure class="code">
+<figcaption><span class="fname">13-9</span><span class="cnote">$apply + orderby + top · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$apply + orderby + top 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$apply=groupby(({HKEY}),aggregate({IPRICE} with sum as Total))&amp;$orderby=Total desc&amp;$top=3"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$apply</span>=groupby((airline_key),aggregate(price <span class="tk">with</span> sum <span class="tk">as</span> Total))&amp;<span class="ta">$orderby</span>=Total <span class="tk">desc</span>&amp;<span class="ta">$top</span>=<span class="tn">3</span></code></pre>
+<p class="watch">TOP 3</p>
+</figure>
+</div>
+<div class="qg" data-s="$compute 계산 컬럼 /{i}?$compute={iprice} mul 2 as doubled&amp;$select={ikey},doubled&amp;$top=3 odata 4.01 기능, 미지원 가능성 높음 ">
+<figure class="code">
+<figcaption><span class="fname">13-10</span><span class="cnote">$compute 계산 컬럼 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="$compute 계산 컬럼 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$compute={IPRICE} mul 2 as Doubled&amp;$select={IKEY},Doubled&amp;$top=3"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$compute</span>=price mul <span class="tn">2</span> <span class="tk">as</span> Doubled&amp;<span class="ta">$select</span>=airline_seq,Doubled&amp;<span class="ta">$top</span>=<span class="tn">3</span></code></pre>
+<p class="watch">OData 4.01 기능, 미지원 가능성 높음</p>
+</figure>
+</div>
+</section><section id="g14" class="step"><span class="badge" aria-hidden="true">14</span><h2>헤더로 바꾸는 응답 모양</h2>
+<ul class="pts"><li>URL이 아니라 요청 헤더. Bruno Headers 탭에 넣으세요.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li><li>❌ 표시는 일부러 에러를 내는 실습 — 상태코드와 메시지를 비교</li></ul>
+<div class="qg" data-s="metadata=full /{h}?$top=1 accept 헤더 교체 → 응답에 @odata.type, @odata.id 등 메타가 풍부해짐 accept: application/json;odata.metadata=full">
+<figure class="code">
+<figcaption><span class="fname">14-1</span><span class="cnote">metadata=full · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="metadata=full 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=1"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=<span class="tn">1</span></code></pre>
+<p class="watch">Accept 헤더 교체 → 응답에 @odata.type, @odata.id 등 메타가 풍부해짐</p>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">헤더</span><span class="cnote">요청 헤더</span><button type="button" class="copy" aria-label="metadata=full 헤더 복사">복사</button></figcaption>
+<pre><code data-kind="hdr" data-m="" data-tpl="Accept: application/json;odata.metadata=full"><span class="tkey">Accept</span>: application/json;odata.metadata=full</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="metadata=none /{h}?$top=1 @odata.context까지 사라지고 데이터만 accept: application/json;odata.metadata=none">
+<figure class="code">
+<figcaption><span class="fname">14-2</span><span class="cnote">metadata=none · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="metadata=none 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=1"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=<span class="tn">1</span></code></pre>
+<p class="watch">@odata.context까지 사라지고 데이터만</p>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">헤더</span><span class="cnote">요청 헤더</span><button type="button" class="copy" aria-label="metadata=none 헤더 복사">복사</button></figcaption>
+<pre><code data-kind="hdr" data-m="" data-tpl="Accept: application/json;odata.metadata=none"><span class="tkey">Accept</span>: application/json;odata.metadata=none</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="ieee754compatible /{i}?$top=3&amp;$select={ikey},{iprice} decimal/int64가 숫자에서 문자열로 바뀌는지 확인 (400 진단 때 자주 나오는 그 헤더) accept: application/json;ieee754compatible=true">
+<figure class="code">
+<figcaption><span class="fname">14-3</span><span class="cnote">IEEE754Compatible · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="IEEE754Compatible 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$top=3&amp;$select={IKEY},{IPRICE}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$top</span>=<span class="tn">3</span>&amp;<span class="ta">$select</span>=airline_seq,price</code></pre>
+<p class="watch">Decimal/Int64가 숫자에서 문자열로 바뀌는지 확인 (400 진단 때 자주 나오는 그 헤더)</p>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">헤더</span><span class="cnote">요청 헤더</span><button type="button" class="copy" aria-label="IEEE754Compatible 헤더 복사">복사</button></figcaption>
+<pre><code data-kind="hdr" data-m="" data-tpl="Accept: application/json;IEEE754Compatible=true"><span class="tkey">Accept</span>: application/json;IEEE754Compatible=true</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="$format=json (쿼리 방식) /{h}?$top=1&amp;$format=json  ">
+<figure class="code">
+<figcaption><span class="fname">14-4</span><span class="cnote">$format=json (쿼리 방식) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="$format=json (쿼리 방식) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=1&amp;$format=json"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=<span class="tn">1</span>&amp;<span class="ta">$format</span>=json</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="$format=xml → 406 /{h}?$top=1&amp;$format=xml v4는 json 전용. 406 not acceptable이 정상 ">
+<figure class="code">
+<figcaption><span class="fname">14-5</span><span class="cnote">$format=xml → 406 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="$format=xml → 406 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=1&amp;$format=xml"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=<span class="tn">1</span>&amp;<span class="ta">$format</span>=xml</code></pre>
+<p class="watch">V4는 JSON 전용. 406 Not Acceptable이 정상</p>
+</figure>
+</div>
+</section><section id="g15" class="step"><span class="badge" aria-hidden="true">15</span><h2>실무 복합 시나리오</h2>
+<ul class="pts"><li>실제 화면/연동에서 날아가는 모양들. 이걸 읽고 쓸 수 있으면 졸업.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="🥇 fiori list report 표준 패턴 /{h}?$select={hkey},{hname},{hctry}&amp;$filter={hctry} eq '{ctry}'&amp;$orderby={hname}&amp;$top=20&amp;$skip=0&amp;$count=true f12 network에서 fiori가 날리는 모양과 똑같음 ">
+<figure class="code">
+<figcaption><span class="fname">15-1</span><span class="cnote">🥇 Fiori List Report 표준 패턴 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="🥇 Fiori List Report 표준 패턴 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select={HKEY},{HNAME},{HCTRY}&amp;$filter={HCTRY} eq '{CTRY}'&amp;$orderby={HNAME}&amp;$top=20&amp;$skip=0&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=airline_key,airline_name,country&amp;<span class="ta">$filter</span>=country <span class="tk">eq</span> <span class="ts">'KR'</span>&amp;<span class="ta">$orderby</span>=airline_name&amp;<span class="ta">$top</span>=<span class="tn">20</span>&amp;<span class="ta">$skip</span>=<span class="tn">0</span>&amp;<span class="ta">$count</span>=true</code></pre>
+<p class="watch">F12 Network에서 Fiori가 날리는 모양과 똑같음</p>
+</figure>
+</div>
+<div class="qg" data-s="🥇 + 검색창 필터 (대소문자 무시) /{h}?$select={hkey},{hname}&amp;$filter=contains(tolower({hname}),'air')&amp;$orderby={hname}&amp;$top=20&amp;$count=true  ">
+<figure class="code">
+<figcaption><span class="fname">15-2</span><span class="cnote">🥇 + 검색창 필터 (대소문자 무시) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="🥇 + 검색창 필터 (대소문자 무시) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select={HKEY},{HNAME}&amp;$filter=contains(tolower({HNAME}),'air')&amp;$orderby={HNAME}&amp;$top=20&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=airline_key,airline_name&amp;<span class="ta">$filter</span>=contains(tolower(airline_name),<span class="ts">'air'</span>)&amp;<span class="ta">$orderby</span>=airline_name&amp;<span class="ta">$top</span>=<span class="tn">20</span>&amp;<span class="ta">$count</span>=true</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="🥈 object page (헤더+아이템 한 번에) /{h}({hkey}={guid})?$expand={nav}($orderby={ikey};$select={ikey},{icode},{iprice},{idate})  ">
+<figure class="code">
+<figcaption><span class="fname">15-3</span><span class="cnote">🥈 Object Page (헤더+아이템 한 번에) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="🥈 Object Page (헤더+아이템 한 번에) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})?$expand={NAV}($orderby={IKEY};$select={IKEY},{ICODE},{IPRICE},{IDATE})"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)?<span class="ta">$expand</span>=_Flight(<span class="ta">$orderby</span>=airline_seq;<span class="ta">$select</span>=airline_seq,connection_id,price,flight_date)</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="🥈 object page 아이템 테이블 (페이징) /{h}({hkey}={guid})/{nav}?$select={ikey},{icode},{iprice}&amp;$orderby={ikey}&amp;$top=10&amp;$skip=0&amp;$count=true  ">
+<figure class="code">
+<figcaption><span class="fname">15-4</span><span class="cnote">🥈 Object Page 아이템 테이블 (페이징) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="🥈 Object Page 아이템 테이블 (페이징) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}?$select={IKEY},{ICODE},{IPRICE}&amp;$orderby={IKEY}&amp;$top=10&amp;$skip=0&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight?<span class="ta">$select</span>=airline_seq,connection_id,price&amp;<span class="ta">$orderby</span>=airline_seq&amp;<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$skip</span>=<span class="tn">0</span>&amp;<span class="ta">$count</span>=true</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="🥉 한국 항공사의 10월 고가 항공편 최신순 10건 ⭐ /{i}?$select={ikey},{icode},{idate},{iprice}&amp;$filter={parent}/{hctry} eq '{ctry}' and year({idate}) eq 2026 and month({idate}) eq 10 and {iprice} gt 500&amp;$orderby={idate} desc&amp;$top=10&amp;$count=true 경로 필터+날짜 함수+페이징+건수 총출동 ">
+<figure class="code">
+<figcaption><span class="fname">15-5</span><span class="cnote">🥉 한국 항공사의 10월 고가 항공편 최신순 10건 ⭐ · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="🥉 한국 항공사의 10월 고가 항공편 최신순 10건 ⭐ 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$select={IKEY},{ICODE},{IDATE},{IPRICE}&amp;$filter={PARENT}/{HCTRY} eq '{CTRY}' and year({IDATE}) eq 2026 and month({IDATE}) eq 10 and {IPRICE} gt 500&amp;$orderby={IDATE} desc&amp;$top=10&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$select</span>=airline_seq,connection_id,flight_date,price&amp;<span class="ta">$filter</span>=_Airline/country <span class="tk">eq</span> <span class="ts">'KR'</span> <span class="tk">and</span> year(flight_date) <span class="tk">eq</span> <span class="tn">2026</span> <span class="tk">and</span> month(flight_date) <span class="tk">eq</span> <span class="tn">10</span> <span class="tk">and</span> price <span class="tk">gt</span> <span class="tn">500</span>&amp;<span class="ta">$orderby</span>=flight_date <span class="tk">desc</span>&amp;<span class="ta">$top</span>=<span class="tn">10</span>&amp;<span class="ta">$count</span>=true</code></pre>
+<p class="watch">경로 필터+날짜 함수+페이징+건수 총출동</p>
+</figure>
+</div>
+<div class="qg" data-s="항공사 카드 + 최저가 1건 /{h}?$select={hkey},{hname}&amp;$expand={nav}($orderby={iprice};$top=1;$select={ikey},{iprice})&amp;$top=5 카드 ui용. 건수는 별도 호출로 (expand 안 $count 미지원) ">
+<figure class="code">
+<figcaption><span class="fname">15-6</span><span class="cnote">항공사 카드 + 최저가 1건 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="항공사 카드 + 최저가 1건 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select={HKEY},{HNAME}&amp;$expand={NAV}($orderby={IPRICE};$top=1;$select={IKEY},{IPRICE})&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=airline_key,airline_name&amp;<span class="ta">$expand</span>=_Flight(<span class="ta">$orderby</span>=price;<span class="ta">$top</span>=<span class="tn">1</span>;<span class="ta">$select</span>=airline_seq,price)&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+<p class="watch">카드 UI용. 건수는 별도 호출로 (expand 안 $count 미지원)</p>
+</figure>
+</div>
+<div class="qg" data-s="검색 + 필터 + 존재조건 /{h}?$filter=contains(tolower({hname}),'air') and {nav}/any(f:f/{iprice} lt 300)&amp;$orderby={hname}  ">
+<figure class="code">
+<figcaption><span class="fname">15-7</span><span class="cnote">검색 + 필터 + 존재조건 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="검색 + 필터 + 존재조건 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=contains(tolower({HNAME}),'air') and {NAV}/any(f:f/{IPRICE} lt 300)&amp;$orderby={HNAME}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=contains(tolower(airline_name),<span class="ts">'air'</span>) <span class="tk">and</span> _Flight/<span class="tk">any</span>(f:f/price <span class="tk">lt</span> <span class="tn">300</span>)&amp;<span class="ta">$orderby</span>=airline_name</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="최근 기간 + 고가 + 자식도 같은 조건 /{h}?$filter={nav}/any(f:f/{idate} ge 2026-10-01 and f/{iprice} gt 500)&amp;$expand={nav}($filter={idate} ge 2026-10-01 and {iprice} gt 500;$orderby={iprice} desc)&amp;$top=5 any 안에서 and로 조건 여러 개 ">
+<figure class="code">
+<figcaption><span class="fname">15-8</span><span class="cnote">최근 기간 + 고가 + 자식도 같은 조건 · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="최근 기간 + 고가 + 자식도 같은 조건 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={NAV}/any(f:f/{IDATE} ge 2026-10-01 and f/{IPRICE} gt 500)&amp;$expand={NAV}($filter={IDATE} ge 2026-10-01 and {IPRICE} gt 500;$orderby={IPRICE} desc)&amp;$top=5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=_Flight/<span class="tk">any</span>(f:f/flight_date <span class="tk">ge</span> 2026-10-01 <span class="tk">and</span> f/price <span class="tk">gt</span> <span class="tn">500</span>)&amp;<span class="ta">$expand</span>=_Flight(<span class="ta">$filter</span>=flight_date <span class="tk">ge</span> 2026-10-01 <span class="tk">and</span> price <span class="tk">gt</span> <span class="tn">500</span>;<span class="ta">$orderby</span>=price <span class="tk">desc</span>)&amp;<span class="ta">$top</span>=<span class="tn">5</span></code></pre>
+<p class="watch">any 안에서 and로 조건 여러 개</p>
+</figure>
+</div>
+<div class="qg" data-s="특정 헤더 목록 한 번에 (in) /{h}?$filter={hkey} in ({guid})&amp;$expand={nav} 여러 guid는 콤마로 (따옴표 없이) ">
+<figure class="code">
+<figcaption><span class="fname">15-9</span><span class="cnote">특정 헤더 목록 한 번에 (in) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="특정 헤더 목록 한 번에 (in) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HKEY} in ({GUID})&amp;$expand={NAV}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=airline_key <span class="tk">in</span> (00000000-0000-0000-0000-000000000000)&amp;<span class="ta">$expand</span>=_Flight</code></pre>
+<p class="watch">여러 GUID는 콤마로 (따옴표 없이)</p>
+</figure>
+</div>
+<div class="qg" data-s="두 국가 + 이름순 + 필요 컬럼 /{h}?$select={hkey},{hname},{hctry}&amp;$filter={hctry} in ('kr','jp')&amp;$orderby={hctry},{hname}&amp;$top=50&amp;$count=true  ">
+<figure class="code">
+<figcaption><span class="fname">15-10</span><span class="cnote">두 국가 + 이름순 + 필요 컬럼 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="두 국가 + 이름순 + 필요 컬럼 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select={HKEY},{HNAME},{HCTRY}&amp;$filter={HCTRY} in ('KR','JP')&amp;$orderby={HCTRY},{HNAME}&amp;$top=50&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=airline_key,airline_name,country&amp;<span class="ta">$filter</span>=country <span class="tk">in</span> (<span class="ts">'KR'</span>,<span class="ts">'JP'</span>)&amp;<span class="ta">$orderby</span>=country,airline_name&amp;<span class="ta">$top</span>=<span class="tn">50</span>&amp;<span class="ta">$count</span>=true</code></pre>
+</figure>
+</div>
+</section><section id="g16" class="step"><span class="badge" aria-hidden="true">16</span><h2>수신 API(ImpData) 검증 세트</h2>
+<ul class="pts"><li>ImpData로 밀어넣은 다음 '진짜 들어갔나?' 확인하는 쿼리들. 테스트할 때마다 이 순서로 돌려보세요.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="① 호출 전 헤더 건수 기록 /{h}/$count 숫자 메모 ">
+<figure class="code">
+<figcaption><span class="fname">16-1</span><span class="cnote">① 호출 전 헤더 건수 기록 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="① 호출 전 헤더 건수 기록 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline/<span class="ta">$count</span></code></pre>
+<p class="watch">숫자 메모</p>
+</figure>
+</div>
+<div class="qg" data-s="② 호출 전 아이템 건수 기록 /{i}/$count 숫자 메모 ">
+<figure class="code">
+<figcaption><span class="fname">16-2</span><span class="cnote">② 호출 전 아이템 건수 기록 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="② 호출 전 아이템 건수 기록 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight/<span class="ta">$count</span></code></pre>
+<p class="watch">숫자 메모</p>
+</figure>
+</div>
+<div class="qg" data-s="③ impdata 호출 (static action) /{h}/{ns}.impdata 기존 bruno 요청 그대로 사용. 응답의 mtype / message 확인 (검증 실패는 http 200 + mtype='e') content-type: application/json">
+<figure class="code">
+<figcaption><span class="fname">16-3</span><span class="cnote">③ ImpData 호출 (static action) · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="③ ImpData 호출 (static action) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="POST" data-tpl="/{H}/{NS}.ImpData"><span class="tk">POST</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline/com.sap.gateway.srvd.zsrv_yhl2609_0010.v0001.ImpData</code></pre>
+<p class="watch">기존 Bruno 요청 그대로 사용. 응답의 mtype / message 확인 (검증 실패는 HTTP 200 + mtype='E')</p>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">헤더</span><span class="cnote">요청 헤더</span><button type="button" class="copy" aria-label="③ ImpData 호출 (static action) 헤더 복사">복사</button></figcaption>
+<pre><code data-kind="hdr" data-m="" data-tpl="Content-Type: application/json"><span class="tkey">Content-Type</span>: application/json</code></pre>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">Body</span><span class="cnote">요청 본문</span><button type="button" class="copy" aria-label="③ ImpData 호출 (static action) Body 복사">복사</button></figcaption>
+<pre><code data-kind="body" data-m="" data-tpl="(기존 Bruno 요청 body 그대로)">(기존 Bruno 요청 body 그대로)</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="④ 호출 후 헤더 건수 /{h}/$count ③ 전과 비교: 헤더 n건 늘었는지 ">
+<figure class="code">
+<figcaption><span class="fname">16-4</span><span class="cnote">④ 호출 후 헤더 건수 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="④ 호출 후 헤더 건수 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline/<span class="ta">$count</span></code></pre>
+<p class="watch">③ 전과 비교: 헤더 N건 늘었는지</p>
+</figure>
+</div>
+<div class="qg" data-s="⑤ 호출 후 아이템 건수 /{i}/$count 아이템 m건 늘었는지 ">
+<figure class="code">
+<figcaption><span class="fname">16-5</span><span class="cnote">⑤ 호출 후 아이템 건수 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="⑤ 호출 후 아이템 건수 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight/<span class="ta">$count</span></code></pre>
+<p class="watch">아이템 M건 늘었는지</p>
+</figure>
+</div>
+<div class="qg" data-s="⑥ 아이템 없는 헤더 (고아 헤더) /{h}?$filter=not {nav}/any()&amp;$select={hkey},{hname}&amp;$count=true 있으면 payload 매핑 오류 의심 ">
+<figure class="code">
+<figcaption><span class="fname">16-6</span><span class="cnote">⑥ 아이템 없는 헤더 (고아 헤더) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="⑥ 아이템 없는 헤더 (고아 헤더) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=not {NAV}/any()&amp;$select={HKEY},{HNAME}&amp;$count=true"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=<span class="tk">not</span> _Flight/<span class="tk">any</span>()&amp;<span class="ta">$select</span>=airline_key,airline_name&amp;<span class="ta">$count</span>=true</code></pre>
+<p class="watch">있으면 payload 매핑 오류 의심</p>
+</figure>
+</div>
+<div class="qg" data-s="⑦ 헤더 하나의 아이템 건수 대조 /{h}({hkey}={guid})/{nav}/$count payload에 넣은 건수와 같은지 ">
+<figure class="code">
+<figcaption><span class="fname">16-7</span><span class="cnote">⑦ 헤더 하나의 아이템 건수 대조 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="⑦ 헤더 하나의 아이템 건수 대조 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}/$count"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight/<span class="ta">$count</span></code></pre>
+<p class="watch">payload에 넣은 건수와 같은지</p>
+</figure>
+</div>
+<div class="qg" data-s="⑧ 아이템 seq 순서 확인 /{h}({hkey}={guid})/{nav}?$orderby={ikey}&amp;$select={ikey},{icode} 0001, 0002 ... 빠짐/중복 없는지 ">
+<figure class="code">
+<figcaption><span class="fname">16-8</span><span class="cnote">⑧ 아이템 seq 순서 확인 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="⑧ 아이템 seq 순서 확인 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}={GUID})/{NAV}?$orderby={IKEY}&amp;$select={IKEY},{ICODE}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=00000000-0000-0000-0000-000000000000)/_Flight?<span class="ta">$orderby</span>=airline_seq&amp;<span class="ta">$select</span>=airline_seq,connection_id</code></pre>
+<p class="watch">0001, 0002 ... 빠짐/중복 없는지</p>
+</figure>
+</div>
+<div class="qg" data-s="⑨ 특정 seq 단건 확인 /{i}({hkey}={guid},{ikey}='{seq}') 복합키 조회 ">
+<figure class="code">
+<figcaption><span class="fname">16-9</span><span class="cnote">⑨ 특정 seq 단건 확인 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="⑨ 특정 seq 단건 확인 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}({HKEY}={GUID},{IKEY}='{SEQ}')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight(airline_key=00000000-0000-0000-0000-000000000000,airline_seq=<span class="ts">'0001'</span>)</code></pre>
+<p class="watch">복합키 조회</p>
+</figure>
+</div>
+<div class="qg" data-s="⑩ 필드 값 샘플 대조 /{h}?$top=5&amp;$expand={nav}($top=2) payload 값이 변형 없이 저장됐는지 (변환 exit/numc 패딩 주의) ">
+<figure class="code">
+<figcaption><span class="fname">16-10</span><span class="cnote">⑩ 필드 값 샘플 대조 · <span class="b-ok">✅ 기본</span></span><button type="button" class="copy" aria-label="⑩ 필드 값 샘플 대조 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=5&amp;$expand={NAV}($top=2)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=<span class="tn">5</span>&amp;<span class="ta">$expand</span>=_Flight(<span class="ta">$top</span>=<span class="tn">2</span>)</code></pre>
+<p class="watch">payload 값이 변형 없이 저장됐는지 (변환 Exit/NUMC 패딩 주의)</p>
+</figure>
+</div>
+<div class="qg" data-s="⑪ 최근 데이터 보기 (역순) /{i}?$orderby={hkey} desc,{ikey} desc&amp;$top=10 guid 순서는 시간순이 아니므로 참고용. 타임스탬프 필드가 있으면 그걸로 정렬 ">
+<figure class="code">
+<figcaption><span class="fname">16-11</span><span class="cnote">⑪ 최근 데이터 보기 (역순) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="⑪ 최근 데이터 보기 (역순) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$orderby={HKEY} desc,{IKEY} desc&amp;$top=10"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$orderby</span>=airline_key <span class="tk">desc</span>,airline_seq <span class="tk">desc</span>&amp;<span class="ta">$top</span>=<span class="tn">10</span></code></pre>
+<p class="watch">GUID 순서는 시간순이 아니므로 참고용. 타임스탬프 필드가 있으면 그걸로 정렬</p>
+</figure>
+</div>
+</section><section id="g17" class="step"><span class="badge" aria-hidden="true">17</span><h2>일부러 깨뜨리기 — 에러 실습</h2>
+<ul class="pts"><li>에러를 한 번 직접 내봐야 나중에 '이거 그때 그거네' 합니다. 상태코드·메시지를 눈에 담아두세요. (상태코드는 서비스 구현에 따라 다를 수 있음)</li><li>❌ 표시는 일부러 에러를 내는 실습 — 상태코드와 메시지를 비교</li></ul>
+<div class="qg" data-s="$filter 대문자 /{h}?$filter={hctry} eq '{ctry}' 옵션 이름은 대소문자 구분. 400 예상 ">
+<figure class="code">
+<figcaption><span class="fname">17-1</span><span class="cnote">$Filter 대문자 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="$Filter 대문자 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$Filter={HCTRY} eq '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$Filter</span>=country <span class="tk">eq</span> <span class="ts">'KR'</span></code></pre>
+<p class="watch">옵션 이름은 대소문자 구분. 400 예상</p>
+</figure>
+</div>
+<div class="qg" data-s="달러 빠뜨림 /{h}?filter={hctry} eq '{ctry}' $ 없는 filter는 사용자 정의 옵션 취급 → 조용히 무시될 수 있음 (필터 안 먹은 것처럼 보임). 에러가 안 나는 게 함정 ">
+<figure class="code">
+<figcaption><span class="fname">17-2</span><span class="cnote">달러 빠뜨림 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="달러 빠뜨림 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?filter={HCTRY} eq '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?filter=country <span class="tk">eq</span> <span class="ts">'KR'</span></code></pre>
+<p class="watch">$ 없는 filter는 사용자 정의 옵션 취급 → 조용히 무시될 수 있음 (필터 안 먹은 것처럼 보임). 에러가 안 나는 게 함정</p>
+</figure>
+</div>
+<div class="qg" data-s="= 로 비교 /{h}?$filter={hctry} = '{ctry}' eq 써야 함. 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-3</span><span class="cnote">= 로 비교 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="= 로 비교 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HCTRY} = '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=country = <span class="ts">'KR'</span></code></pre>
+<p class="watch">eq 써야 함. 400</p>
+</figure>
+</div>
+<div class="qg" data-s="and 대문자 /{h}?$filter={hctry} eq '{ctry}' and {hname} ne '' and는 소문자. 400 예상 ">
+<figure class="code">
+<figcaption><span class="fname">17-4</span><span class="cnote">AND 대문자 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="AND 대문자 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HCTRY} eq '{CTRY}' AND {HNAME} ne ''"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=country <span class="tk">eq</span> <span class="ts">'KR'</span> AND airline_name <span class="tk">ne</span> <span class="ts">''</span></code></pre>
+<p class="watch">and는 소문자. 400 예상</p>
+</figure>
+</div>
+<div class="qg" data-s="guid에 따옴표 /{h}?$filter={hkey} eq '{guid}' guid는 따옴표 ❌. 400 예상 ⭐ ">
+<figure class="code">
+<figcaption><span class="fname">17-5</span><span class="cnote">GUID에 따옴표 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="GUID에 따옴표 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HKEY} eq '{GUID}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=airline_key <span class="tk">eq</span> <span class="ts">'00000000-0000-0000-0000-000000000000'</span></code></pre>
+<p class="watch">GUID는 따옴표 ❌. 400 예상 ⭐</p>
+</figure>
+</div>
+<div class="qg" data-s="키 조회에 guid 따옴표 /{h}({hkey}='{guid}') 400 예상 ">
+<figure class="code">
+<figcaption><span class="fname">17-6</span><span class="cnote">키 조회에 GUID 따옴표 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="키 조회에 GUID 따옴표 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}='{GUID}')"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=<span class="ts">'00000000-0000-0000-0000-000000000000'</span>)</code></pre>
+<p class="watch">400 예상</p>
+</figure>
+</div>
+<div class="qg" data-s="numc 따옴표 없이 /{i}({hkey}={guid},{ikey}=0001) edm.string 키는 따옴표 필요. 400 예상 ">
+<figure class="code">
+<figcaption><span class="fname">17-7</span><span class="cnote">NUMC 따옴표 없이 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="NUMC 따옴표 없이 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}({HKEY}={GUID},{IKEY}=0001)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight(airline_key=00000000-0000-0000-0000-000000000000,airline_seq=<span class="tn">0001</span>)</code></pre>
+<p class="watch">Edm.String 키는 따옴표 필요. 400 예상</p>
+</figure>
+</div>
+<div class="qg" data-s="문자열 따옴표 없이 /{h}?$filter={hctry} eq {ctry} 400 예상 ">
+<figure class="code">
+<figcaption><span class="fname">17-8</span><span class="cnote">문자열 따옴표 없이 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="문자열 따옴표 없이 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HCTRY} eq {CTRY}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=country <span class="tk">eq</span> KR</code></pre>
+<p class="watch">400 예상</p>
+</figure>
+</div>
+<div class="qg" data-s="큰따옴표 사용 /{h}?$filter={hctry} eq &quot;{ctry}&quot; 문자열 리터럴은 작은따옴표만. 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-9</span><span class="cnote">큰따옴표 사용 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="큰따옴표 사용 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={HCTRY} eq &quot;{CTRY}&quot;"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=country <span class="tk">eq</span> <span class="ts">"KR"</span></code></pre>
+<p class="watch">문자열 리터럴은 작은따옴표만. 400</p>
+</figure>
+</div>
+<div class="qg" data-s="날짜에 따옴표 /{i}?$filter={idate} eq '2026-10-18' edm.date와 문자열 타입 불일치. 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-10</span><span class="cnote">날짜에 따옴표 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="날짜에 따옴표 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IDATE} eq '2026-10-18'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=flight_date <span class="tk">eq</span> <span class="ts">'2026-10-18'</span></code></pre>
+<p class="watch">Edm.Date와 문자열 타입 불일치. 400</p>
+</figure>
+</div>
+<div class="qg" data-s="v2 방식 날짜 /{i}?$filter={idate} eq datetime'2026-10-18t00:00:00' v2 습관. 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-11</span><span class="cnote">V2 방식 날짜 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="V2 방식 날짜 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IDATE} eq datetime'2026-10-18T00:00:00'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=flight_date <span class="tk">eq</span> datetime<span class="ts">'2026-10-18T00:00:00'</span></code></pre>
+<p class="watch">V2 습관. 400</p>
+</figure>
+</div>
+<div class="qg" data-s="날짜 포맷 이상 /{i}?$filter={idate} eq 20261018 하이픈 없는 포맷은 거부. 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-12</span><span class="cnote">날짜 포맷 이상 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="날짜 포맷 이상 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{I}?$filter={IDATE} eq 20261018"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Flight?<span class="ta">$filter</span>=flight_date <span class="tk">eq</span> <span class="tn">20261018</span></code></pre>
+<p class="watch">하이픈 없는 포맷은 거부. 400</p>
+</figure>
+</div>
+<div class="qg" data-s="없는 필드 select /{h}?$select=nope_field 400, 메시지에 필드명 노출 ">
+<figure class="code">
+<figcaption><span class="fname">17-13</span><span class="cnote">없는 필드 select · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="없는 필드 select 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$select=nope_field"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$select</span>=nope_field</code></pre>
+<p class="watch">400, 메시지에 필드명 노출</p>
+</figure>
+</div>
+<div class="qg" data-s="없는 필드 filter /{h}?$filter=nope_field eq 'x' 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-14</span><span class="cnote">없는 필드 filter · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="없는 필드 filter 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=nope_field eq 'x'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=nope_field <span class="tk">eq</span> <span class="ts">'x'</span></code></pre>
+<p class="watch">400</p>
+</figure>
+</div>
+<div class="qg" data-s="없는 필드 orderby /{h}?$orderby=nope_field 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-15</span><span class="cnote">없는 필드 orderby · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="없는 필드 orderby 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$orderby=nope_field"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$orderby</span>=nope_field</code></pre>
+<p class="watch">400</p>
+</figure>
+</div>
+<div class="qg" data-s="없는 엔티티셋 /nopeset 404 ">
+<figure class="code">
+<figcaption><span class="fname">17-16</span><span class="cnote">없는 엔티티셋 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="없는 엔티티셋 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/NopeSet"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/NopeSet</code></pre>
+<p class="watch">404</p>
+</figure>
+</div>
+<div class="qg" data-s="없는 키 /{h}({hkey}=11111111-1111-1111-1111-111111111111) 404 (guid 형식은 맞는데 데이터가 없음) ">
+<figure class="code">
+<figcaption><span class="fname">17-17</span><span class="cnote">없는 키 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="없는 키 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}=11111111-1111-1111-1111-111111111111)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=11111111-1111-1111-1111-111111111111)</code></pre>
+<p class="watch">404 (GUID 형식은 맞는데 데이터가 없음)</p>
+</figure>
+</div>
+<div class="qg" data-s="guid 형식 깨짐 /{h}({hkey}=abc) 400 (형식 오류) vs 404(없음)의 차이 체감 ">
+<figure class="code">
+<figcaption><span class="fname">17-18</span><span class="cnote">GUID 형식 깨짐 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="GUID 형식 깨짐 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}({HKEY}=abc)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline(airline_key=abc)</code></pre>
+<p class="watch">400 (형식 오류) vs 404(없음)의 차이 체감</p>
+</figure>
+</div>
+<div class="qg" data-s="없는 association expand /{h}?$expand=_nope 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-19</span><span class="cnote">없는 association expand · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="없는 association expand 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand=_Nope"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Nope</code></pre>
+<p class="watch">400</p>
+</figure>
+</div>
+<div class="qg" data-s="expand 안 $count (실제 확인된 에러) /{h}?$expand={nav}($count=true) /iwbep/cm_v4s_run/004 ">
+<figure class="code">
+<figcaption><span class="fname">17-20</span><span class="cnote">expand 안 $count (실제 확인된 에러) · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="expand 안 $count (실제 확인된 에러) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}($count=true)"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight(<span class="ta">$count</span>=true)</code></pre>
+<p class="watch">/IWBEP/CM_V4S_RUN/004</p>
+</figure>
+</div>
+<div class="qg" data-s="top 음수 /{h}?$top=-1 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-21</span><span class="cnote">top 음수 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="top 음수 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=-1"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=-1</code></pre>
+<p class="watch">400</p>
+</figure>
+</div>
+<div class="qg" data-s="top 문자 /{h}?$top=abc 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-22</span><span class="cnote">top 문자 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="top 문자 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$top=abc"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$top</span>=abc</code></pre>
+<p class="watch">400</p>
+</figure>
+</div>
+<div class="qg" data-s="skip 소수 /{h}?$skip=1.5 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-23</span><span class="cnote">skip 소수 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="skip 소수 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$skip=1.5"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$skip</span>=<span class="tn">1.5</span></code></pre>
+<p class="watch">400</p>
+</figure>
+</div>
+<div class="qg" data-s="to-many를 경로로 정렬 /{h}?$orderby={nav}/{iprice} to-many 경로는 정렬 불가. 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-24</span><span class="cnote">to-many를 경로로 정렬 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="to-many를 경로로 정렬 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$orderby={NAV}/{IPRICE}"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$orderby</span>=_Flight/price</code></pre>
+<p class="watch">to-many 경로는 정렬 불가. 400</p>
+</figure>
+</div>
+<div class="qg" data-s="to-many를 경로로 필터 (any 없이) /{h}?$filter={nav}/{iprice} gt 100 any/all 없이 쓰면 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-25</span><span class="cnote">to-many를 경로로 필터 (any 없이) · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="to-many를 경로로 필터 (any 없이) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter={NAV}/{IPRICE} gt 100"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=_Flight/price <span class="tk">gt</span> <span class="tn">100</span></code></pre>
+<p class="watch">any/all 없이 쓰면 400</p>
+</figure>
+</div>
+<div class="qg" data-s="괄호 짝 안 맞음 /{h}?$filter=({hctry} eq '{ctry}' 400 ">
+<figure class="code">
+<figcaption><span class="fname">17-26</span><span class="cnote">괄호 짝 안 맞음 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="괄호 짝 안 맞음 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$filter=({HCTRY} eq '{CTRY}'"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$filter</span>=(country <span class="tk">eq</span> <span class="ts">'KR'</span></code></pre>
+<p class="watch">400</p>
+</figure>
+</div>
+<div class="qg" data-s="expand 안에서 &amp; 사용 /{h}?$expand={nav}($top=1&amp;$orderby={iprice}) 괄호 안은 ; 여야 함. &amp; 쓰면 400 또는 이상 동작 ">
+<figure class="code">
+<figcaption><span class="fname">17-27</span><span class="cnote">expand 안에서 &amp; 사용 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="expand 안에서 &amp; 사용 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$expand={NAV}($top=1&amp;$orderby={IPRICE})"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$expand</span>=_Flight(<span class="ta">$top</span>=<span class="tn">1</span>&amp;<span class="ta">$orderby</span>=price)</code></pre>
+<p class="watch">괄호 안은 ; 여야 함. &amp; 쓰면 400 또는 이상 동작</p>
+</figure>
+</div>
+<div class="qg" data-s="$format=xml /{h}?$format=xml 406 not acceptable ">
+<figure class="code">
+<figcaption><span class="fname">17-28</span><span class="cnote">$format=xml · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="$format=xml 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="GET" data-tpl="/{H}?$format=xml"><span class="tk">GET</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline?<span class="ta">$format</span>=xml</code></pre>
+<p class="watch">406 Not Acceptable</p>
+</figure>
+</div>
+<div class="qg" data-s="post로 읽기 시도 /{h} bruno에서 메서드를 post로만 바꿔서 호출 → body 없이 create 시도하는 셈. 405/400/필수필드 에러 체감용 (unmanaged라 실제 생성되진 않아야 정상) ">
+<figure class="code">
+<figcaption><span class="fname">17-29</span><span class="cnote">POST로 읽기 시도 · <span class="b-no">❌ 에러 실습</span></span><button type="button" class="copy" aria-label="POST로 읽기 시도 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="POST" data-tpl="/{H}"><span class="tk">POST</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/Airline</code></pre>
+<p class="watch">Bruno에서 메서드를 POST로만 바꿔서 호출 → body 없이 create 시도하는 셈. 405/400/필수필드 에러 체감용 (unmanaged라 실제 생성되진 않아야 정상)</p>
+</figure>
+</div>
+</section><section id="g18" class="step"><span class="badge" aria-hidden="true">18</span><h2>$batch — 여러 요청 한 방에</h2>
+<ul class="pts"><li>도시락 3번 오는 대신 한 번에 묶어 받기. Fiori가 화면 하나 뜰 때 이걸로 묶어서 보냅니다.</li><li>⚠️ 표시는 서비스 구현에 따라 안 될 수 있음 — 안 되면 그 결과를 확인하는 것이 목적</li></ul>
+<div class="qg" data-s="multipart batch (가장 호환 좋음) /$batch get 2개를 한 번에. 응답도 multipart로 옴 content-type: multipart/mixed; boundary=batch_1
+accept: multipart/mixed">
+<figure class="code">
+<figcaption><span class="fname">18-1</span><span class="cnote">multipart batch (가장 호환 좋음) · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="multipart batch (가장 호환 좋음) 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="POST" data-tpl="/$batch"><span class="tk">POST</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/<span class="ta">$batch</span></code></pre>
+<p class="watch">GET 2개를 한 번에. 응답도 multipart로 옴</p>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">헤더</span><span class="cnote">요청 헤더</span><button type="button" class="copy" aria-label="multipart batch (가장 호환 좋음) 헤더 복사">복사</button></figcaption>
+<pre><code data-kind="hdr" data-m="" data-tpl="Content-Type: multipart/mixed; boundary=batch_1
+Accept: multipart/mixed"><span class="tkey">Content-Type</span>: multipart/mixed; boundary=batch_1
+<span class="tkey">Accept</span>: multipart/mixed</code></pre>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">Body</span><span class="cnote">요청 본문</span><button type="button" class="copy" aria-label="multipart batch (가장 호환 좋음) Body 복사">복사</button></figcaption>
+<pre><code data-kind="body" data-m="" data-tpl="--batch_1
+Content-Type: application/http
+Content-Transfer-Encoding: binary
+
+GET {H}?$top=2&amp;$select={HKEY},{HNAME} HTTP/1.1
+Accept: application/json
+
+
+--batch_1
+Content-Type: application/http
+Content-Transfer-Encoding: binary
+
+GET {I}/$count HTTP/1.1
+Accept: text/plain
+
+
+--batch_1--">--batch_1
+Content-Type: application/http
+Content-Transfer-Encoding: binary
+
+GET Airline?$top=2&amp;$select=airline_key,airline_name HTTP/1.1
+Accept: application/json
+
+
+--batch_1
+Content-Type: application/http
+Content-Transfer-Encoding: binary
+
+GET Flight/$count HTTP/1.1
+Accept: text/plain
+
+
+--batch_1--</code></pre>
+</figure>
+</div>
+<div class="qg" data-s="json batch /$batch 릴리스에 따라 미지원. 안 되면 위 multipart로 content-type: application/json
+accept: application/json">
+<figure class="code">
+<figcaption><span class="fname">18-2</span><span class="cnote">JSON batch · <span class="b-warn">⚠️ 환경따라</span></span><button type="button" class="copy" aria-label="JSON batch 복사">복사</button></figcaption>
+<pre><code data-kind="url" data-m="POST" data-tpl="/$batch"><span class="tk">POST</span> https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001/<span class="ta">$batch</span></code></pre>
+<p class="watch">릴리스에 따라 미지원. 안 되면 위 multipart로</p>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">헤더</span><span class="cnote">요청 헤더</span><button type="button" class="copy" aria-label="JSON batch 헤더 복사">복사</button></figcaption>
+<pre><code data-kind="hdr" data-m="" data-tpl="Content-Type: application/json
+Accept: application/json"><span class="tkey">Content-Type</span>: application/json
+<span class="tkey">Accept</span>: application/json</code></pre>
+</figure>
+<figure class="code sub">
+<figcaption><span class="fname">Body</span><span class="cnote">요청 본문</span><button type="button" class="copy" aria-label="JSON batch Body 복사">복사</button></figcaption>
+<pre><code data-kind="body" data-m="" data-tpl="{
+  &quot;requests&quot;: [
+    { &quot;id&quot;: &quot;1&quot;, &quot;method&quot;: &quot;GET&quot;, &quot;url&quot;: &quot;{H}?$top=2&quot; },
+    { &quot;id&quot;: &quot;2&quot;, &quot;method&quot;: &quot;GET&quot;, &quot;url&quot;: &quot;{I}/$count&quot; }
+  ]
+}">{
+  "requests": [
+    { "id": "1", "method": "GET", "url": "Airline?$top=2" },
+    { "id": "2", "method": "GET", "url": "Flight/$count" }
+  ]
+}</code></pre>
+</figure>
+</div>
+</section><section id="trouble" class="step"><span class="badge" aria-hidden="true">19</span><h2>막혔던 지점 정리</h2><div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody>
+<tr><td>GUID 키 조건에서 400</td><td>GUID에 작은따옴표를 붙임</td><td><code>airline_key eq 0050…</code> 처럼 따옴표 없이 작성</td></tr>
+<tr><td>NUMC 키 단건 조회 400</td><td>NUMC는 <code>Edm.String</code>이라 따옴표가 필요</td><td><code>airline_seq='0001'</code></td></tr>
+<tr><td><code>$expand</code> 안 <code>$count</code>에서 <code>/IWBEP/CM_V4S_RUN/004</code></td><td>이 서비스에서 미지원</td><td><code>/Header(key)/_Items/$count</code> 별도 호출</td></tr>
+<tr><td><code>$format=xml</code> 406</td><td>OData V4 데이터는 JSON 전용 (XML은 <code>$metadata</code>만)</td><td><code>$format</code> 제거</td></tr>
+<tr><td><code>$expand</code> 괄호 안 옵션이 안 먹음</td><td>괄호 안 구분자는 <code>;</code></td><td><code>($filter=…;$top=1)</code></td></tr>
+<tr><td>날짜 필터 400</td><td>따옴표 또는 V2 방식 <code>datetime'…'</code> 사용</td><td><code>flight_date eq 2026-10-18</code></td></tr>
+<tr><td><code>eq null</code>로 안 잡힘</td><td>ABAP 초기값은 null이 아니라 <code>''</code>인 경우가 많음</td><td><code>eq ''</code>와 건수 비교</td></tr>
+<tr><td>페이지를 넘길 때 순서가 섞임</td><td><code>$orderby</code> 없이 페이징</td><td>키 필드로 정렬 고정 후 <code>$top/$skip</code></td></tr>
+<tr><td><code>$search</code> / <code>$apply</code> 400</td><td>CDS 검색·집계 어노테이션 또는 서비스 미지원</td><td><code>$metadata</code>의 Capabilities 확인, 안 되면 다른 방식으로 대체</td></tr>
+<tr><td>to-many 경로로 정렬·필터 400</td><td>컬렉션 경로는 직접 비교 불가</td><td>필터는 <code>any()/all()</code>, 정렬은 불가</td></tr>
+</tbody></table></div></section></main>
+</div>
+<footer>SAP RAP · OData V4 Web API · 항공사(헤더) + 항공편(아이템) 수신 API 기준. 엔티티·필드명은 예시 기본값이므로 설정에서 교체.</footer>
+<script>
+var CFG_DEF=[["BASE","서비스 루트 (BASE)","https://YOUR_HOST:PORT/sap/opu/odata4/sap/zsrv_yhl2609_0010/srvd/sap/zsrv_yhl2609_0010/0001",true],["NS","액션 네임스페이스","com.sap.gateway.srvd.zsrv_yhl2609_0010.v0001",true],["H","헤더 엔티티셋","Airline"],["I","아이템 엔티티셋","Flight"],["NAV","헤더→아이템 association","_Flight"],["PARENT","아이템→헤더 association","_Airline"],["HKEY","헤더 키 필드 (UUID)","airline_key"],["HNAME","헤더 텍스트 필드","airline_name"],["HCTRY","헤더 국가 필드","country"],["IKEY","아이템 키 필드 (NUMC)","airline_seq"],["ICODE","아이템 문자 필드","connection_id"],["IPRICE","아이템 숫자 필드","price"],["IDATE","아이템 날짜 필드(Edm.Date)","flight_date"],["GUID","테스트용 헤더 GUID (실존 값)","00000000-0000-0000-0000-000000000000"],["SEQ","테스트용 아이템 SEQ","0001"],["CTRY","테스트용 국가값","KR"]];
+var cfg={};CFG_DEF.forEach(function(c){cfg[c[0]]=c[2]});
+try{var sv=JSON.parse(localStorage.getItem('odata-cfg')||'{}');for(var k in sv){if(k in cfg)cfg[k]=sv[k]}}catch(e){}
+
+function esc(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]});}
+function sub(s,cfg){return s.replace(/\{(\w+)\}/g,function(m,k){return (k in cfg)?cfg[k]:m});}
+function hl(t){
+  var re=/('[^']*')|("[^"]*")|(\$[A-Za-z]+)|\b(eq|ne|gt|ge|lt|le|and|or|not|in|any|all|asc|desc|with|as|null)\b|((?<=[ =(,])\d+(?:\.\d+)?(?=[ ),&;]|$))/g;
+  var out='',last=0,m;
+  while((m=re.exec(t))){
+    out+=esc(t.slice(last,m.index));
+    var cls=m[1]||m[2]?'ts':m[3]?'ta':m[4]?'tk':'tn';
+    out+='<span class="'+cls+'">'+esc(m[0])+'</span>';
+    last=m.index+m[0].length;
+  }
+  return out+esc(t.slice(last));
+}
+function fullUrl(p,cfg){return cfg.BASE.replace(/\/$/,'')+sub(p,cfg);}
+function encUrl(u){return u.replace(/ /g,'%20').replace(/"/g,'%22');}
+function renderCode(kind,tpl,m,cfg){
+  if(kind==='url'){
+    if(tpl.charAt(0)==='(') return '<span class="tc">'+esc(tpl)+'</span>';
+    return '<span class="tk">'+m+'</span> '+hl(fullUrl(tpl,cfg));
+  }
+  if(kind==='hdr'){
+    return sub(tpl,cfg).split('\n').map(function(l){
+      var i=l.indexOf(':'); if(i<0) return esc(l);
+      return '<span class="tkey">'+esc(l.slice(0,i))+'</span>:'+esc(l.slice(i+1));
+    }).join('\n');
+  }
+  return esc(sub(tpl,cfg));
+}
+
+function renderAll(){
+  document.querySelectorAll('pre code[data-kind]').forEach(function(c){
+    c.innerHTML=renderCode(c.dataset.kind,c.dataset.tpl,c.dataset.m,cfg);
+  });
+}
+document.querySelectorAll('input[data-k]').forEach(function(i){
+  i.value=cfg[i.dataset.k];
+  i.addEventListener('input',function(){
+    cfg[i.dataset.k]=i.value;
+    try{localStorage.setItem('odata-cfg',JSON.stringify(cfg))}catch(e){}
+    renderAll();
+  });
+});
+renderAll();
+function copyText(fig){
+  var c=fig.querySelector('code');
+  if(c.dataset.kind==='url'){
+    var p=c.dataset.tpl;
+    return p.charAt(0)==='('?p:encUrl(fullUrl(p,cfg));
+  }
+  return c.innerText;
+}
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=copyText(b.closest('figure'));
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var qi=document.getElementById('q');
+qi.addEventListener('input',function(){
+  var v=qi.value.trim().toLowerCase();
+  document.querySelectorAll('.qg').forEach(function(g){g.classList.toggle('hide',!!v&&g.dataset.s.indexOf(v)<0)});
+  document.querySelectorAll('section.step').forEach(function(s){
+    var gs=s.querySelectorAll('.qg');if(!gs.length)return;
+    var any=false;gs.forEach(function(g){if(!g.classList.contains('hide'))any=true});
+    s.classList.toggle('hide',!any);
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
