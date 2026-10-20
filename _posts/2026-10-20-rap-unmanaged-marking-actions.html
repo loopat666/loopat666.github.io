@@ -1,0 +1,438 @@
+---
+layout: post
+categories: [RAP]
+tags: [RAP]
+title: "RAP Unmanaged 마킹 Action 만들기"
+description: "RAP Unmanaged에서 Action으로 삭제·출력 지시자 찍기: instance action부터 EDM 이름 충돌 삽질까지"
+date: 2026-10-20 20:22:20 +0900
+---
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>rap unmanaged: marking delete and print flags with instance actions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>rap unmanaged: marking delete and print flags with instance actions</h1>
+<p>삭제/출력 지시자를 instance action으로 마킹하고 해제하는 unmanaged RAP 구현 기록. boolean 파라미터 하나로 켜고 끄고, 버퍼와 save를 직접 구현했으며, 막혔던 에러까지 정리했다.</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="개발 단계"><ol><li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li><li><a href="#step1"><span class="num">1</span><span class="lbl">파라미터 AE</span></a></li><li><a href="#step2"><span class="num">2</span><span class="lbl">BDEF 선언</span></a></li><li><a href="#step3"><span class="num">3</span><span class="lbl">버퍼와 핸들러 정의</span></a></li><li><a href="#step4"><span class="num">4</span><span class="lbl">Action 핸들러</span></a></li><li><a href="#step5"><span class="num">5</span><span class="lbl">update / read</span></a></li><li><a href="#step6"><span class="num">6</span><span class="lbl">Saver</span></a></li><li><a href="#step7"><span class="num">7</span><span class="lbl">호출 테스트</span></a></li><li><a href="#trouble"><span class="num">8</span><span class="lbl">막혔던 지점 정리</span></a></li><li><a href="#step9"><span class="num">9</span><span class="lbl">EDM 이름 충돌</span></a></li><li><a href="#step10"><span class="num">10</span><span class="lbl">일괄 마킹 설계</span></a></li></ol></nav>
+<main><section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2><ul class="pts"><li>테이블 <code>yhl2609t0001</code>의 삭제/출력 지시자를 <b>Action 호출로 마킹하고 해제</b>하는 unmanaged RAP 시나리오</li><li>행을 집는 작업이라 <b>instance action</b>, 켜고 끄는 값은 <b>boolean 파라미터 하나</b>로 받음</li><li>어느 컬럼에 찍을지는 body가 아니라 <b>URL의 Action 이름</b>(<code>MarkDelete</code> / <code>MarkPrint</code>)이 결정</li><li>순서: AE → BDEF → 버퍼/핸들러 → update/read → saver → 호출 → 막혔던 지점</li></ul>
+<ol class="flow" aria-label="처리 흐름">
+<li><b>Bruno</b><span>POST + JSON body</span></li>
+<li><b>OData V4 서비스</b><span>Flights의 bound action</span></li>
+<li><b>Action 핸들러</b><span>MODIFY ... IN LOCAL MODE</span></li>
+<li><b>버퍼 → save</b><span>update 핸들러 / UPDATE</span></li>
+<li><b>응답</b><span>$self 또는 결과 구조</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>종류</th><th>이름</th><th>역할</th></tr></thead><tbody><tr><td>DB 테이블</td><td><code>yhl2609t0001</code></td><td><code>zdelete</code>(삭제 지시자), <code>zflag</code>(출력 지시자), 키 <code>zlogkey</code>(UUID)</td></tr><tr><td>Behavior Definition</td><td><code>yhl2609a001u</code> (alias <code>Flights</code>)</td><td>unmanaged, Action 선언</td></tr><tr><td>Behavior Pool</td><td><code>zbp_hl2609a001u</code></td><td>핸들러 / 버퍼 / saver 구현</td></tr><tr><td>Abstract Entity</td><td><code>ya_yhl2609_0001_flag</code></td><td>Action 파라미터 (true/false 스위치)</td></tr><tr><td>Abstract Entity</td><td><code>ya_yhl2609_0001_return</code></td><td>MarkPrint 결과 구조</td></tr><tr><td>서비스</td><td><code>YHL2609A001U_01</code></td><td>OData V4로 노출</td></tr></tbody></table></div>
+</section>
+<section id="step1" class="step"><span class="badge" aria-hidden="true">1</span><h2>파라미터 Abstract Entity</h2><ul class="pts"><li><code>abap_boolean</code>은 OData V4에서 <code>Edm.Boolean</code>으로 노출되어 JSON <code>true/false</code>로 주고받음</li><li>필드 이름이 그대로 body 키가 되므로 소문자 <code>zflag</code> 그대로 보내야 함</li><li>두 Action의 파라미터 구성이 같아서 AE 하나를 공유. 구성이 갈라지면 그때 분리</li><li>테이블의 <code>ZFLAG</code>(출력 지시자)와 이름만 같은 별개라 헷갈리기 쉬움. 중립 이름(예: <code>setvalue</code>)을 권장</li></ul>
+<figure class="code">
+<figcaption><span class="fname">ya_yhl2609_0001_flag.ddls.asddls</span><span class="cnote">Action 파라미터</span><button type="button" class="copy" aria-label="ya_yhl2609_0001_flag.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Boolean parameter - flag'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> ya_yhl2609_0001_flag
+{
+  zflag : abap_boolean;
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">ya_yhl2609_0001_return.ddls.asddls</span><span class="cnote">MarkPrint 결과 구조 ($metadata 기준 정리, 실제 정의와 다를 수 있음)</span><button type="button" class="copy" aria-label="ya_yhl2609_0001_return.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Mark result'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> ya_yhl2609_0001_return
+{
+  zlogkey     : sysuuid_x16;
+  carrid      : s_carr_id;
+  connid      : s_conn_id;
+  ret_type    : abap.char(<span class="tn">1</span>);
+  ret_message : abap.char(<span class="tn">255</span>);
+}</code></pre>
+</figure>
+</section>
+<section id="step2" class="step"><span class="badge" aria-hidden="true">2</span><h2>BDEF 선언</h2><ul class="pts"><li><code>internal update;</code>로 핸들러 내부 MODIFY만 허용하고 외부 PATCH는 차단</li><li><code>MarkDelete</code>는 <code>result [1] $self</code>로 갱신된 행 1건을 반환</li><li><code>MarkPrint</code>는 별도 결과 구조를 <code>[0..*]</code>로 반환해 응답 모양을 비교</li><li>BDEF를 먼저 활성화하고 클래스를 나중에 활성화</li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001u.bdef.asbdef</span><span class="cnote">Behavior Definition</span><button type="button" class="copy" aria-label="yhl2609a001u.bdef.asbdef 복사">복사</button></figcaption>
+<pre><code><span class="tk">unmanaged</span> <span class="tk">implementation</span> <span class="tk">in</span> <span class="tk">class</span> zbp_hl2609a001u <span class="tk">unique</span>;
+<span class="tk">strict</span> ( <span class="tn">2</span> );
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> yhl2609a001u <span class="tk">alias</span> Flights
+<span class="tk">lock</span> <span class="tk">master</span>
+<span class="tk">authorization</span> <span class="tk">master</span> ( global )
+{
+  <span class="tk">internal</span> <span class="tk">update</span>;   <span class="tc">// 내부 MODIFY 전용, 외부 PATCH는 안 열림</span>
+  <span class="tk">field</span> ( <span class="tk">readonly</span> ) Zlogkey;
+
+  <span class="tk">static</span> <span class="tk">action</span> ImpData <span class="tk">deep</span> <span class="tk">parameter</span> yhl2609a001 <span class="tk">deep</span> <span class="tk">result</span> [<span class="tn">0</span>..<span class="tn">1</span>] yhl2609a001r;
+
+  <span class="tk">action</span> MarkDelete <span class="tk">parameter</span> ya_yhl2609_0001_flag <span class="tk">result</span> [<span class="tn">1</span>] $self;
+  <span class="tk">action</span> MarkPrint  <span class="tk">parameter</span> ya_yhl2609_0001_flag <span class="tk">result</span> [<span class="tn">0</span>..*] ya_yhl2609_0001_return;
+}</code></pre>
+</figure>
+</section>
+<section id="step3" class="step"><span class="badge" aria-hidden="true">3</span><h2>로컬 버퍼와 핸들러 정의</h2><ul class="pts"><li>unmanaged는 <b>update(버퍼) → read(버퍼 덮어쓰기) → save(DB)</b>를 직접 구현</li><li><code>mt_upd</code>의 <code>c_del / c_flag</code>는 그 컬럼을 이번에 바꿨는지 기억해 다른 지시자를 덮어쓰지 않게 함</li><li><code>update</code> 메서드를 핸들러에 선언해야 BDEF의 <code>internal update</code>와 짝이 맞음</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zbp_hl2609a001u.clas.locals_imp.abap</span><span class="cnote">Local Types: 버퍼 + 핸들러 정의</span><button type="button" class="copy" aria-label="zbp_hl2609a001u.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">class</span> lcl_buffer <span class="tk">definition</span> <span class="tk">final</span> <span class="tk">create</span> <span class="tk">private</span>.
+  <span class="tk">public</span> <span class="tk">section</span>.
+    <span class="tk">types</span>: ty_item type yhl2609t0001,
+           tt_item type <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> ty_item <span class="tk">with</span> <span class="tk">empty</span> key.
+
+    <span class="tk">types</span>: <span class="tk">begin</span> <span class="tk">of</span> ty_upd,
+             zlogkey type yhl2609t0001-zlogkey,
+             zdelete type yhl2609t0001-zdelete,
+             zflag   type yhl2609t0001-zflag,
+             c_del   type abap_bool,   <span class="tc">" zdelete 변경 여부</span>
+             c_flag  type abap_bool,   <span class="tc">" zflag 변경 여부</span>
+           <span class="tk">end</span> <span class="tk">of</span> ty_upd,
+           tt_upd type <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> ty_upd <span class="tk">with</span> <span class="tk">empty</span> key.
+
+    <span class="tk">class-data</span>: mt_item type tt_item,   <span class="tc">" ImpData 신규 적재분</span>
+                mt_upd  type tt_upd.    <span class="tc">" 마킹 변경분</span>
+
+    <span class="tk">class-methods</span> <span class="tk">clear</span>.
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lcl_buffer <span class="tk">implementation</span>.
+  <span class="tk">method</span> <span class="tk">clear</span>.
+    <span class="tk">clear</span>: mt_item, mt_upd.
+  <span class="tk">endmethod</span>.
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lhc_Flights <span class="tk">definition</span> <span class="tk">inheriting</span> <span class="tk">from</span> cl_abap_behavior_handler.
+  <span class="tk">private</span> <span class="tk">section</span>.
+    <span class="tk">methods</span> get_global_authorizations <span class="tk">for</span> global authorization
+      <span class="tk">importing</span> request requested_authorizations <span class="tk">for</span> Flights <span class="tk">result</span> <span class="tk">result</span>.
+    <span class="tk">methods</span> <span class="tk">read</span> <span class="tk">for</span> <span class="tk">read</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">read</span> Flights <span class="tk">result</span> <span class="tk">result</span>.
+    <span class="tk">methods</span> lock <span class="tk">for</span> lock
+      <span class="tk">importing</span> keys <span class="tk">for</span> lock Flights.
+    <span class="tk">methods</span> <span class="tk">update</span> <span class="tk">for</span> <span class="tk">modify</span>
+      <span class="tk">importing</span> <span class="tk">entities</span> <span class="tk">for</span> <span class="tk">update</span> Flights.
+    <span class="tk">methods</span> ImpData <span class="tk">for</span> <span class="tk">modify</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> action Flights~ImpData <span class="tk">result</span> <span class="tk">result</span>.
+    <span class="tk">methods</span> MarkDelete <span class="tk">for</span> <span class="tk">modify</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> action Flights~MarkDelete <span class="tk">result</span> <span class="tk">result</span>.
+    <span class="tk">methods</span> MarkPrint <span class="tk">for</span> <span class="tk">modify</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> action Flights~MarkPrint <span class="tk">result</span> <span class="tk">result</span>.
+<span class="tk">endclass</span>.</code></pre>
+</figure>
+</section>
+<section id="step4" class="step"><span class="badge" aria-hidden="true">4</span><h2>Action 핸들러: MarkDelete / MarkPrint</h2><ul class="pts"><li>두 핸들러의 차이는 건드리는 컬럼(<code>zdelete</code> vs <code>zflag</code>)과 result 조립 방식뿐</li><li>핸들러에서 <code>UPDATE</code>를 직접 치지 않고 <code>MODIFY ENTITIES</code>로 RAP 흐름(버퍼 → save)을 탐</li><li><code>failed</code>를 채우면 save가 스킵되어 성공 건까지 같이 날아감. 부분 성공이 필요하면 비워둠</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zbp_hl2609a001u.clas.locals_imp.abap</span><span class="cnote">MarkDelete ($self)</span><button type="button" class="copy" aria-label="zbp_hl2609a001u.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">method</span> MarkDelete.
+  <span class="tk">modify</span> <span class="tk">entities</span> <span class="tk">of</span> yhl2609a001u <span class="tk">in</span> <span class="tk">local</span> <span class="tk">mode</span>
+    <span class="tk">entity</span> Flights
+      <span class="tk">update</span> <span class="tk">fields</span> ( zdelete )
+      <span class="tk">with</span> <span class="tk">value</span> #( <span class="tk">for</span> key <span class="tk">in</span> keys
+                    ( %tky    = key-%tky
+                      zdelete = <span class="tk">cond</span> #( <span class="tk">when</span> key-%param-zflag = abap_true
+                                        <span class="tk">then</span> abap_true <span class="tk">else</span> abap_false ) ) )
+    <span class="tk">failed</span> <span class="tk">failed</span>
+    <span class="tk">reported</span> <span class="tk">reported</span>.
+
+  <span class="tk">read</span> <span class="tk">entities</span> <span class="tk">of</span> yhl2609a001u <span class="tk">in</span> <span class="tk">local</span> <span class="tk">mode</span>
+    <span class="tk">entity</span> Flights <span class="tk">all</span> <span class="tk">fields</span> <span class="tk">with</span> <span class="tk">corresponding</span> #( keys )
+    <span class="tk">result</span> <span class="tk">data</span>(rows).
+
+  <span class="tk">result</span> = <span class="tk">value</span> #( <span class="tk">for</span> r <span class="tk">in</span> rows ( %tky = r-%tky %param = r ) ).
+<span class="tk">endmethod</span>.</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">zbp_hl2609a001u.clas.locals_imp.abap</span><span class="cnote">MarkPrint (결과 구조)</span><button type="button" class="copy" aria-label="zbp_hl2609a001u.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">method</span> MarkPrint.
+  <span class="tk">modify</span> <span class="tk">entities</span> <span class="tk">of</span> yhl2609a001u <span class="tk">in</span> <span class="tk">local</span> <span class="tk">mode</span>
+    <span class="tk">entity</span> Flights
+      <span class="tk">update</span> <span class="tk">fields</span> ( zflag )
+      <span class="tk">with</span> <span class="tk">value</span> #( <span class="tk">for</span> key <span class="tk">in</span> keys
+                    ( %tky  = key-%tky
+                      zflag = <span class="tk">cond</span> #( <span class="tk">when</span> key-%param-zflag = abap_true
+                                      <span class="tk">then</span> abap_true <span class="tk">else</span> abap_false ) ) )
+    <span class="tk">failed</span> <span class="tk">failed</span>
+    <span class="tk">reported</span> <span class="tk">reported</span>.
+
+  <span class="tk">read</span> <span class="tk">entities</span> <span class="tk">of</span> yhl2609a001u <span class="tk">in</span> <span class="tk">local</span> <span class="tk">mode</span>
+    <span class="tk">entity</span> Flights <span class="tk">all</span> <span class="tk">fields</span> <span class="tk">with</span> <span class="tk">corresponding</span> #( keys )
+    <span class="tk">result</span> <span class="tk">data</span>(rows).
+
+  <span class="tc">" 결과 구조는 필요한 필드만 직접 조립</span>
+  <span class="tk">result</span> = <span class="tk">value</span> #( <span class="tk">for</span> r <span class="tk">in</span> rows
+    ( %tky   = r-%tky
+      %param = <span class="tk">value</span> #( zlogkey     = r-zlogkey
+                        carrid      = r-carrid
+                        connid      = r-connid
+                        ret_type    = <span class="ts">'S'</span>
+                        ret_message = <span class="tk">cond</span> #( <span class="tk">when</span> r-zflag = abap_true
+                                              <span class="tk">then</span> <span class="ts">|출력 마킹 완료|</span>
+                                              <span class="tk">else</span> <span class="ts">|출력 마킹 해제|</span> ) ) ) ).
+<span class="tk">endmethod</span>.</code></pre>
+</figure>
+</section>
+<section id="step5" class="step"><span class="badge" aria-hidden="true">5</span><h2>update / read 핸들러</h2><ul class="pts"><li><code>update</code>는 DB를 건드리지 않고 버퍼에만 쌓음</li><li><code>%control</code>은 <code>'X'</code>가 아니라 <code>if_abap_behv=&gt;mk-on</code>과 비교</li><li><code>read</code>가 비어 있으면 instance action 호출이 안 됨. MODIFY 직후 READ에 방금 찍은 값이 보이게 버퍼를 덮어씀</li><li>엔티티 쪽 필드명은 CDS 뷰의 alias 기준. 가정하지 말고 실제 alias 확인</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zbp_hl2609a001u.clas.locals_imp.abap</span><span class="cnote">update</span><button type="button" class="copy" aria-label="zbp_hl2609a001u.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">method</span> <span class="tk">update</span>.
+  <span class="tk">loop</span> <span class="tk">at</span> <span class="tk">entities</span> <span class="tk">into</span> <span class="tk">data</span>(e).
+    <span class="tk">append</span> <span class="tk">value</span> #(
+      zlogkey = e-zlogkey
+      zdelete = e-zdelete
+      zflag   = e-zflag
+      c_del   = <span class="tk">xsdbool</span>( e-%control-zdelete = if_abap_behv=&gt;mk-on )
+      c_flag  = <span class="tk">xsdbool</span>( e-%control-zflag   = if_abap_behv=&gt;mk-on )
+    ) <span class="tk">to</span> lcl_buffer=&gt;mt_upd.
+  <span class="tk">endloop</span>.
+<span class="tk">endmethod</span>.</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">zbp_hl2609a001u.clas.locals_imp.abap</span><span class="cnote">read</span><button type="button" class="copy" aria-label="zbp_hl2609a001u.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">method</span> <span class="tk">read</span>.
+  <span class="tk">check</span> keys <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+
+  <span class="tk">select</span> * <span class="tk">from</span> yhl2609t0001
+    <span class="tk">for</span> <span class="tk">all</span> entries <span class="tk">in</span> @keys
+    <span class="tk">where</span> zlogkey = @keys-zlogkey
+    <span class="tk">into</span> <span class="tk">table</span> @<span class="tk">data</span>(lt_db).
+
+  <span class="tc">" 아직 save 안 된 마킹을 위에 덮어씀</span>
+  <span class="tk">loop</span> <span class="tk">at</span> lt_db <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;db&gt;).
+    <span class="tk">loop</span> <span class="tk">at</span> lcl_buffer=&gt;mt_upd <span class="tk">into</span> <span class="tk">data</span>(u) <span class="tk">where</span> zlogkey = &lt;db&gt;-zlogkey.
+      <span class="tk">if</span> u-c_del  = abap_true. &lt;db&gt;-zdelete = u-zdelete. <span class="tk">endif</span>.
+      <span class="tk">if</span> u-c_flag = abap_true. &lt;db&gt;-zflag   = u-zflag.   <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endloop</span>.
+
+  <span class="tk">result</span> = <span class="tk">corresponding</span> #( lt_db ).
+<span class="tk">endmethod</span>.</code></pre>
+</figure>
+</section>
+<section id="step6" class="step"><span class="badge" aria-hidden="true">6</span><h2>Saver: 진짜 UPDATE</h2><ul class="pts"><li>DB UPDATE는 <code>save</code> 안에서만 수행</li><li>관리 필드(<code>local_last_changed_*</code>)는 unmanaged라서 직접 채움</li><li><code>cleanup</code>에서 <code>lcl_buffer=&gt;clear( )</code>로 두 버퍼를 함께 비움</li><li>ImpData insert 시 <code>created_by / created_at</code>은 아직 채우지 않음 (다음 정리 항목)</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zbp_hl2609a001u.clas.locals_imp.abap</span><span class="cnote">lsc_YHL2609A001U: save / cleanup</span><button type="button" class="copy" aria-label="zbp_hl2609a001u.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">method</span> save.
+  <span class="tk">if</span> lcl_buffer=&gt;mt_item <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+    <span class="tk">insert</span> yhl2609t0001 <span class="tk">from</span> <span class="tk">table</span> @( <span class="tk">corresponding</span> #( lcl_buffer=&gt;mt_item ) ).
+  <span class="tk">endif</span>.
+
+  <span class="tk">if</span> lcl_buffer=&gt;mt_upd <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+    <span class="tk">data</span> lv_ts type timestampl.
+    <span class="tk">get</span> <span class="tk">time</span> <span class="tk">stamp</span> <span class="tk">field</span> lv_ts.
+
+    <span class="tk">loop</span> <span class="tk">at</span> lcl_buffer=&gt;mt_upd <span class="tk">into</span> <span class="tk">data</span>(u).
+      <span class="tk">if</span> u-c_del = abap_true.
+        <span class="tk">update</span> yhl2609t0001 <span class="tk">set</span> zdelete = @u-zdelete <span class="tk">where</span> zlogkey = @u-zlogkey.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> u-c_flag = abap_true.
+        <span class="tk">update</span> yhl2609t0001 <span class="tk">set</span> zflag = @u-zflag <span class="tk">where</span> zlogkey = @u-zlogkey.
+      <span class="tk">endif</span>.
+      <span class="tk">update</span> yhl2609t0001
+        <span class="tk">set</span> local_last_changed_by = @sy-uname,
+            local_last_changed_at = @lv_ts,
+            last_changed_at       = @lv_ts
+        <span class="tk">where</span> zlogkey = @u-zlogkey.
+    <span class="tk">endloop</span>.
+  <span class="tk">endif</span>.
+<span class="tk">endmethod</span>.
+
+<span class="tk">method</span> cleanup.
+  lcl_buffer=&gt;<span class="tk">clear</span>( ).
+<span class="tk">endmethod</span>.</code></pre>
+</figure>
+</section>
+<section id="step7" class="step"><span class="badge" aria-hidden="true">7</span><h2>호출 테스트</h2><ul class="pts"><li>대상 행은 body가 아니라 <b>URL의 키</b>로 지정. GUID는 하이픈 있는 8-4-4-4-12 형식</li><li>body는 BDEF에 선언한 파라미터 <code>zflag</code> 하나만. 엔티티 컬럼(<code>Zdelete</code>)을 넣으면 안 됨</li><li>boolean은 문자열 <code>"X"</code>가 아니라 JSON <code>true/false</code></li><li>Bruno의 Body 모드는 JSON, <code>Content-Type: application/json</code> 확인</li></ul>
+<h4>1. 키와 CSRF 토큰 확보</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><span class="cnote">응답 헤더의 x-csrf-token 복사</span><button type="button" class="copy" aria-label="요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">GET</span> {{host}}/sap/opu/odata4/sap/yhl2609a001u_01_api_v4/srvd_a2x/sap/yhl2609a001u_01/0001/Flights?$top=3&amp;$select=Zlogkey,Carrid,Zdelete,Zflag
+<span class="tkey">x-csrf-token</span>: Fetch</code></pre>
+</figure>
+<h4>2. MarkDelete</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><button type="button" class="copy" aria-label="요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">POST</span> {{host}}/sap/opu/odata4/sap/yhl2609a001u_01_api_v4/srvd_a2x/sap/yhl2609a001u_01/0001/Flights(36459195-FACD-1FE1-B0E4-9409BB086069)/com.sap.gateway.srvd_a2x.yhl2609a001u_01.v0001.MarkDelete
+<span class="tkey">x-csrf-token</span>: &lt;토큰&gt;
+<span class="tkey">Content-Type</span>: application/json
+<span class="tkey">Accept</span>: application/json</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">Body</span><span class="cnote">해제는 false</span><button type="button" class="copy" aria-label="Body 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"zflag"</span>: <span class="tk">true</span>
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">성공 응답</span><span class="cnote">행 1건이 평평한 JSON으로 옴</span><button type="button" class="copy" aria-label="성공 응답 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"Zlogkey"</span>: <span class="ts">"36459195-FACD-1FE1-B0E4-9409BB086069"</span>,
+  <span class="tkey">"Carrid"</span>: <span class="ts">"LH"</span>,
+  <span class="tkey">"Zdelete"</span>: <span class="tk">true</span>,
+  <span class="tkey">"Zflag"</span>: <span class="tk">false</span>
+}</code></pre>
+</figure>
+<h4>3. MarkPrint</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><span class="cnote">URL 끝만 MarkPrint</span><button type="button" class="copy" aria-label="요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">POST</span> {{host}}/sap/opu/odata4/sap/yhl2609a001u_01_api_v4/srvd_a2x/sap/yhl2609a001u_01/0001/Flights(36459195-FACD-1FE1-B0E4-9409BB086069)/com.sap.gateway.srvd_a2x.yhl2609a001u_01.v0001.MarkPrint
+<span class="tkey">x-csrf-token</span>: &lt;토큰&gt;
+<span class="tkey">Content-Type</span>: application/json
+<span class="tkey">Accept</span>: application/json</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">Body</span><button type="button" class="copy" aria-label="Body 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"zflag"</span>: <span class="tk">true</span>
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">성공 응답</span><span class="cnote">value 배열로 옴</span><button type="button" class="copy" aria-label="성공 응답 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"value"</span>: [
+    {
+      <span class="tkey">"zlogkey"</span>: <span class="ts">"36459195-FACD-1FE1-B0E4-9409BB086069"</span>,
+      <span class="tkey">"carrid"</span>: <span class="ts">"LH"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0400"</span>,
+      <span class="tkey">"ret_type"</span>: <span class="ts">"S"</span>,
+      <span class="tkey">"ret_message"</span>: <span class="ts">"출력 마킹 완료"</span>
+    }
+  ]
+}</code></pre>
+</figure>
+<h4>4. DB 확인</h4>
+<ul class="pts"><li>ADT Data Preview로 <code>yhl2609t0001</code>의 <code>zdelete</code>가 <code>X</code>인지, <code>false</code>로 해제하면 공백으로 돌아가는지 확인</li></ul>
+</section>
+<section id="trouble" class="step"><span class="badge" aria-hidden="true">8</span><h2>막혔던 지점 정리</h2><div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody><tr><td><code>The operation "UPDATE" is not activated for entity</code></td><td>핸들러에 update를 선언했는데 BDEF에 update가 없음(주석 처리)</td><td><code>internal update;</code> 추가. BDEF 먼저, 클래스 나중에 활성화</td></tr><tr><td><code>No component exists with the name "ZDELETE"</code></td><td>엔티티 필드명을 가정한 이름으로 작성</td><td>CDS 뷰의 실제 alias로 교체</td></tr><tr><td><code>Complex type with EDM name '...' already exists</code> (500)</td><td>같은 AE를 deep 구조의 자식과 Action 단독 result로 동시에 사용</td><td>결과용 AE를 따로 분리하고 서비스 재발행 후 <code>$metadata</code> 확인</td></tr><tr><td><code>Action 'MarkDelete' is bound to single-valued parameter</code> (480)</td><td>$metadata에서 MarkDelete의 반환이 Collection이었음 (<code>[0..*] $self</code> 선언)</td><td><code>result [1] $self</code>로 수정 후 재발행. 원인은 에러 문구와 메타데이터로 추론한 것</td></tr><tr><td><code>CX_OD_URI_SYNTAX_ERROR</code> (400)</td><td>URL 키가 하이픈 없는 32자리 GUID</td><td><code>36459195-FACD-1FE1-B0E4-9409BB086069</code> 형식으로</td></tr><tr><td><code>CX_SXML_PARSE_ERROR</code> (400)</td><td>body를 JSON으로 인식하지 못함 (Content-Type 또는 Body 모드 의심)</td><td>Body 모드 JSON, 헤더 확인, body는 <code>{ "zflag": true }</code></td></tr><tr><td>body에 <code>Zdelete</code>를 직접 전달</td><td>Action은 BDEF에 선언한 파라미터만 받음 (외부 PATCH는 <code>internal update</code>로 막힘)</td><td><code>zflag</code>만 보내고 컬럼은 Action 이름으로 선택</td></tr></tbody></table></div>
+<ul class="pts"><li>에러 본문은 정보 노출 방지로 숨겨짐. <b>Gateway Error Log</b>(ADT Feed Reader 또는 <code>/IWFND/ERROR_LOG</code>)에서 Short Text를 확인</li></ul>
+</section>
+<section id="step9" class="step"><span class="badge" aria-hidden="true">9</span><h2>AE 재사용과 EDM 이름 충돌</h2><ul class="pts"><li>"AE 재사용 금지"가 아니라 <b>확인된 충돌은 한 가지 조합</b></li><li><code>yhl2609a001rt</code>가 ImpData deep result의 자식이자 MarkPrint의 단독 result여서 충돌 → <code>ya_yhl2609_0001_return</code>으로 분리해 해결</li><li>"내부 이름이 달라서 두 번 만들어진다"는 에러 스택에서 추론한 설명이며 문서로 확인한 것은 아님</li><li>실무 원칙: <b>action 그룹마다 result AE를 따로</b> 둠</li></ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>상황</th><th>판단</th></tr></thead><tbody><tr><td>AE를 deep 구조의 자식으로 쓰고, 다른 Action의 단독 result로도 씀</td><td>충돌 확인됨. AE를 분리</td></tr><tr><td>AE를 여러 Action의 단독 result/parameter로만 씀</td><td>보통 괜찮을 것으로 보지만 이 환경에서 검증 안 됨</td></tr><tr><td>deep 구조끼리 같은 AE를 자식으로 공유</td><td>해본 적 없음. 안전하게 분리</td></tr></tbody></table></div>
+</section>
+<section id="step10" class="step"><span class="badge" aria-hidden="true">10</span><h2>다음 단계: 일괄 마킹 설계 (미검증)</h2><ul class="pts"><li><b>아직 구현하지 않은 설계</b>. 호출자가 키 목록을 갖고 건별 결과를 받는 static action + deep parameter 방식</li><li>처리 흐름: 키 일괄 조회(<code>for all entries</code>) → 건별 검증(빈 키/없는 키/중복 키는 결과에 E) → 합격 건만 <code>MODIFY ... update from</code> → failed는 비워 부분 성공 유지</li><li>구현 시 확인: <code>_items</code> 이름은 추정이라 <code>$metadata</code>로 확인, <code>%cid</code> 에러 시 <code>[0..1]</code> deep result로 전환, 결과 AE 충돌 시 bulk 전용 AE로 분리</li></ul>
+<figure class="code">
+<figcaption><span class="fname">ya_yhl2609_0001_bulk.ddls.asddls</span><span class="cnote">입력 AE (루트 + 아이템)</span><button type="button" class="copy" aria-label="ya_yhl2609_0001_bulk.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="tk">define</span> <span class="tk">root</span> <span class="tk">abstract</span> <span class="tk">entity</span> ya_yhl2609_0001_bulk
+{
+  zflag  : abap_boolean;
+  _items : <span class="tk">composition</span> [<span class="tn">1</span>..*] <span class="tk">of</span> ya_yhl2609_0001_bulk_item;
+}
+
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> ya_yhl2609_0001_bulk_item
+{
+  zlogkey : sysuuid_x16;
+  _parent : <span class="tk">association</span> <span class="tk">to</span> <span class="tk">parent</span> ya_yhl2609_0001_bulk;
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">yhl2609a001u.bdef.asbdef</span><span class="cnote">추가할 Action 선언</span><button type="button" class="copy" aria-label="yhl2609a001u.bdef.asbdef 복사">복사</button></figcaption>
+<pre><code><span class="tk">static</span> <span class="tk">action</span> MarkDeleteBulk <span class="tk">deep</span> <span class="tk">parameter</span> ya_yhl2609_0001_bulk
+  <span class="tk">result</span> [<span class="tn">0</span>..*] ya_yhl2609_0001_return;
+<span class="tk">static</span> <span class="tk">action</span> MarkPrintBulk  <span class="tk">deep</span> <span class="tk">parameter</span> ya_yhl2609_0001_bulk
+  <span class="tk">result</span> [<span class="tn">0</span>..*] ya_yhl2609_0001_return;</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">Body</span><span class="cnote">MarkDeleteBulk 예시 (2번째는 일부러 없는 키)</span><button type="button" class="copy" aria-label="Body 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"zflag"</span>: <span class="tk">true</span>,
+  <span class="tkey">"_items"</span>: [
+    { <span class="tkey">"zlogkey"</span>: <span class="ts">"36459195-FACD-1FE1-B0E4-9409BB086069"</span> },
+    { <span class="tkey">"zlogkey"</span>: <span class="ts">"00000000-0000-0000-0000-000000000001"</span> }
+  ]
+}</code></pre>
+</figure>
+</section>
+</main>
+</div>
+<footer>기준: <code>yhl2609a001u</code> · <code>zbp_hl2609a001u</code> · 서비스 <code>YHL2609A001U_01</code> · 작성일 2026-10-20 · 10단계는 미검증 설계</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
