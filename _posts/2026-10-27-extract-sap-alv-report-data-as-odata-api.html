@@ -1,0 +1,499 @@
+---
+layout: post
+categories: [RAP]
+tags: [RAP]
+title: "SAP ALV 리포트 데이터를 OData API로 뽑아내는 법: cl_salv_bs_runtime_info 활용"
+description: "SAP ALV 리포트 데이터를 OData API로 뽑아내는 법: cl_salv_bs_runtime_info 활용"
+date: 2026-10-27 20:22:22 +0900
+---
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>ALV 리포트를 OData V4 API로 노출하기: Custom Entity + SUBMIT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>ALV 리포트를 OData V4 API로 노출하기: Custom Entity + SUBMIT</h1>
+<p>기존 ALV 리포트를 건드리지 않고, SUBMIT 으로 최종 출력 데이터를 가로채 RAP Custom Entity 로 실시간 OData V4 API 를 만든 과정과 소스 전체</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="개발 단계"><ol><li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li><li><a href="#step1"><span class="num">1</span><span class="lbl">선택화면 (TOP include)</span></a></li><li><a href="#step2"><span class="num">2</span><span class="lbl">Custom Entity</span></a></li><li><a href="#step3"><span class="num">3</span><span class="lbl">Query Provider 클래스</span></a></li><li><a href="#step4"><span class="num">4</span><span class="lbl">Service Def / Binding</span></a></li><li><a href="#step5"><span class="num">5</span><span class="lbl">호출 테스트</span></a></li><li><a href="#trouble"><span class="num">6</span><span class="lbl">막혔던 지점 정리</span></a></li><li><a href="#todo"><span class="num">7</span><span class="lbl">운영 전 보완 메모</span></a></li></ol></nav>
+<main><section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2><ul class="pts"><li>기존 ALV(<code>cl_gui_alv_grid</code>) 리포트의 최종 출력 데이터를 OData V4 Web API 로 노출하는 시나리오</li><li>리포트는 수정하지 않고 <code>SUBMIT</code> + <code>cl_salv_bs_runtime_info</code> 로 ALV 화면 없이 데이터만 가로채 Custom Entity 로 응답. Z 테이블 없이 호출 시점마다 실시간 조회</li><li>개발 순서: 선택화면 이름 확인 → Custom Entity → Query Provider 클래스 → Service Definition/Binding → 호출 테스트</li><li>리포트 본체(START-OF-SELECTION, ALV 호출부)는 이 문서에서 생략하고 TOP include 기준으로 정리</li></ul>
+<ol class="flow" aria-label="처리 흐름">
+<li><b>호출자</b><span>Postman, 외부 시스템 (GET)</span></li>
+<li><b>Service Binding</b><span>OData V4 - Web API</span></li>
+<li><b>Query Provider</b><span>IF_RAP_QUERY_PROVIDER~SELECT</span></li>
+<li><b>SUBMIT 낚아채기</b><span>ALV 화면 없이 데이터만 수신</span></li>
+<li><b>응답</b><span>JSON (필터, 정렬, 페이징 적용)</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>종류</th><th>이름</th><th>역할</th></tr></thead><tbody><tr><td>ALV 리포트</td><td><code>YHL2609AVLR001</code></td><td>기존 리포트. 선택화면 <code>s_carrid</code>, <code>s_fldate</code> 로 조회 후 ALV 출력</td></tr><tr><td>Include</td><td><code>YHL2609AVLR001_TOP</code></td><td>선택화면 선언 (SUBMIT 으로 값을 넘길 대상)</td></tr><tr><td>Custom Entity</td><td><code>zu_2609_sflight</code></td><td>API 응답 구조 정의, 구현 클래스 지정</td></tr><tr><td>Class</td><td><code>ZCL_2609_REPORT_SFLIGHT</code></td><td>Query Provider. 필터 변환, SUBMIT 낚아채기, 정렬, 페이징</td></tr><tr><td>Service Definition</td><td><code>ZSRV_YHL2609_SFLIGHT</code></td><td>Custom Entity 를 <code>Flights</code> 로 expose</td></tr><tr><td>Service Binding</td><td>OData V4 - Web API</td><td>UI 없이 API 로만 노출 (바인딩 이름은 환경에 맞게)</td></tr></tbody></table></div></section>
+<section id="step1" class="step"><span class="badge" aria-hidden="true">1</span><h2>기존 리포트 선택화면 (TOP include)</h2><ul class="pts"><li><code>SUBMIT ... WITH 이름 IN range</code> 의 이름은 리포트의 <code>SELECT-OPTIONS</code> 이름과 글자 하나까지 같아야 함</li><li>이름이 달라도 에러 없이 조용히 무시되어 조건이 안 걸림 (막혔던 지점 참고)</li><li>아래 소스는 오타를 고친 최종본. <code>s_carid</code> → <code>s_carrid</code></li><li>화면용 코드(popup, ok_code 등)는 SUBMIT 방식 API 호출에서는 사용되지 않음</li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609avlr001_top.prog.abap</span><span class="cnote">Include YHL2609AVLR001_TOP</span><button type="button" class="copy" aria-label="yhl2609avlr001_top.prog.abap 복사">복사</button></figcaption>
+<pre><code><span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp; Include          YHL2609AVLR001_TOP</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+
+<span class="tk">tables</span> scarr.
+<span class="tk">tables</span> sflight.
+
+<span class="tk">data</span>: save_ok         <span class="tk">type</span> sy-ucomm,                         <span class="tc">" SAVE_OK</span>
+      ok_code         <span class="tk">type</span> sy-ucomm,                         <span class="tc">" OK_CODE</span>
+      gv_title        <span class="tk">type</span> sy-title,                         <span class="tc">" Title</span>
+      gv_cursor       <span class="tk">type</span> fieldname,
+      gv_cursor_dynnr <span class="tk">type</span> sydynnr.
+
+<span class="tk">field-symbols</span> &lt;ft_alv_table&gt; <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span>.
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp; Include   Data Definitions.</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tk">data</span>:gs_sflight <span class="tk">type</span> sflight,
+     gt_sflight <span class="tk">type</span> <span class="tk">table</span> <span class="tk">of</span> sflight.
+
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp; Include SELECTION-SCREEN</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tk">selection-screen</span> <span class="tk">begin</span> <span class="tk">of</span> <span class="tk">block</span> b01 <span class="tk">with</span> <span class="tk">frame</span> <span class="tk">title</span> text-t01.
+
+  <span class="tk">select-options</span>: s_carrid <span class="tk">for</span> scarr-carrid,
+                  s_fldate <span class="tk">for</span> sflight-fldate.
+
+<span class="tk">selection-screen</span> <span class="tk">end</span> <span class="tk">of</span> <span class="tk">block</span> b01.
+
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp; Common Data Select.</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+
+<span class="tk">select</span> <span class="tk">from</span> scarr <span class="tk">fields</span> *
+  <span class="tk">into</span> <span class="tk">table</span> @<span class="tk">data</span>(gt_data).
+
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp;      Form  BAPI_COMMIT</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*       text</span>
+<span class="tc">*----------------------------------------------------------------------*</span>
+<span class="tk">form</span> _bapi_commit.
+  <span class="tk">call</span> <span class="tk">function</span> <span class="ts">'BAPI_TRANSACTION_COMMIT'</span>
+    <span class="tk">exporting</span>
+      wait = <span class="ts">'X'</span>.
+<span class="tk">endform</span>.                    <span class="tc">"BAPI_COMMIT</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp;      Form  BAPI_ROLLBACK</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*       text</span>
+<span class="tc">*----------------------------------------------------------------------*</span>
+<span class="tk">form</span> _bapi_rollback.
+  <span class="tk">call</span> <span class="tk">function</span> <span class="ts">'BAPI_TRANSACTION_ROLLBACK'</span>.
+<span class="tk">endform</span>.                    <span class="tc">"BAPI_ROLLBACK</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp;      Form  POPUP_TO_CONFIRM</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*       text</span>
+<span class="tc">*----------------------------------------------------------------------*</span>
+<span class="tk">form</span> popup_to_confirm <span class="tk">using</span> p_title <span class="tk">type</span> text50
+                            p_question <span class="tk">type</span> text255
+                            r_answer <span class="tk">type</span> char1.<span class="tc">"Return values: '1', '2', 'A'</span>
+
+  <span class="tk">call</span> <span class="tk">function</span> <span class="ts">'POPUP_TO_CONFIRM'</span>
+    <span class="tk">exporting</span>
+      titlebar              = p_title
+      text_question         = p_question
+      text_button_1         = <span class="ts">'Yes'</span>
+      text_button_2         = <span class="ts">'No'</span>
+      display_cancel_button = space
+    <span class="tk">importing</span>
+      answer                = r_answer <span class="tc">"Return values: '1', '2', 'A'</span>
+    <span class="tk">exceptions</span>
+      text_no_found         = <span class="tn">1</span>
+      <span class="tk">others</span>                = <span class="tn">2</span>.
+
+  <span class="tk">case</span> r_answer.
+    <span class="tk">when</span> <span class="ts">`1`</span>.
+      r_answer = <span class="ts">`Y`</span>.
+    <span class="tk">when</span> <span class="tk">others</span>.
+      r_answer = <span class="ts">`N`</span>.
+  <span class="tk">endcase</span>.
+
+<span class="tk">endform</span>.
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*&amp;      Form  exit_ucomm</span>
+<span class="tc">*&amp;---------------------------------------------------------------------*</span>
+<span class="tc">*       text</span>
+<span class="tc">*----------------------------------------------------------------------*</span>
+<span class="tk">form</span> exit_ucomm.
+
+  <span class="tk">data</span> lv_answer <span class="tk">type</span> char1.
+
+  <span class="tk">case</span> sy-ucomm.
+    <span class="tk">when</span> <span class="ts">'EXIT'</span>.
+
+      <span class="tk">perform</span> popup_to_confirm <span class="tk">using</span> <span class="ts">`Exit`</span> <span class="ts">`Do you want to Exit Programe?`</span> lv_answer.
+
+
+      <span class="tk">check</span> lv_answer <span class="tk">eq</span> <span class="ts">'Y'</span>.
+
+      <span class="tk">leave</span> <span class="tk">program</span>.
+
+    <span class="tk">when</span> <span class="ts">'BACK'</span>  <span class="tk">or</span> <span class="ts">'CANC'</span>.
+
+<span class="tc">*      perform popup_to_confirm using `Exit` `Do you want to Back to Previous screen?` lv_answer.</span>
+<span class="tc">*</span>
+<span class="tc">*      check lv_answer eq 'Y'.</span>
+
+      <span class="tk">leave</span> <span class="tk">to</span> screen <span class="tn">0</span>.
+  <span class="tk">endcase</span>.
+
+<span class="tk">endform</span>.                    <span class="tc">"exit_usercommond</span></code></pre>
+</figure>
+</section>
+<section id="step2" class="step"><span class="badge" aria-hidden="true">2</span><h2>Custom Entity 생성</h2><ul class="pts"><li><code>@ObjectModel.query.implementedBy: 'ABAP:클래스명'</code> 이 데이터를 만들어 주는 클래스를 지정</li><li>호출이 들어올 때마다 해당 클래스의 <code>IF_RAP_QUERY_PROVIDER~SELECT</code> 가 실행됨</li><li>key 는 carrid, connid, fldate. 금액 필드는 <code>@Semantics.amount.currencyCode</code> 로 통화 필드(<code>CURRENCY</code>)를 연결</li><li>element 이름이 소문자/대문자 혼용. OData 호출 시 정의한 이름 그대로 사용</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zu_2609_sflight.ddls.asddls</span><span class="cnote">Custom Entity</span><button type="button" class="copy" aria-label="zu_2609_sflight.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'ALV Data Snapshot'</span>
+<span class="ta">@ObjectModel.query.implementedBy</span>: <span class="ts">'ABAP:ZCL_2609_REPORT_SFLIGHT'</span>
+<span class="tk">define</span> <span class="tk">custom</span> <span class="tk">entity</span> zu_2609_sflight
+{
+  <span class="tk">key</span> carrid     : s_carr_id;
+  <span class="tk">key</span> connid     : s_conn_id;
+  <span class="tk">key</span> fldate     : s_date;
+      <span class="ta">@Semantics.amount.currencyCode</span>: <span class="ts">'CURRENCY'</span>
+      PRICE      : s_price;
+      CURRENCY   : s_currcode;
+      PLANETYPE  : s_planetye;
+      SEATSMAX   : s_seatsmax;
+      SEATSOCC   : s_seatsocc;
+      <span class="ta">@Semantics.amount.currencyCode</span>: <span class="ts">'CURRENCY'</span>
+      PAYMENTSUM : s_sum;
+      SEATSMAX_B : s_smax_b;
+      SEATSOCC_B : s_socc_b;
+      SEATSMAX_F : s_smax_f;
+      SEATSOCC_F : s_socc_f;
+
+}</code></pre>
+</figure>
+</section>
+<section id="step3" class="step"><span class="badge" aria-hidden="true">3</span><h2>Query Provider 클래스</h2><ul class="pts"><li><code>SELECT</code> 흐름: 필터 → range 변환 → <code>get_alv_data</code> (SUBMIT) → 정렬 → <code>$count</code> → 페이징(<code>$top</code>, <code>$skip</code>)</li><li><code>get_alv_data</code>: <code>cl_salv_bs_runtime_info=&gt;set</code> (display 끄고 data 켬) → <code>SUBMIT</code> → <code>get_data_ref</code> → <code>clear_all</code> 필수</li><li>필터 이름 <code>&lt;f&gt;-name</code> 은 대문자(<code>CARRID</code>, <code>FLDATE</code>)로 도착</li><li><code>get_data</code> (SFLIGHT 직접 조회)는 대안으로 남겨두었고 현재 호출부는 주석 처리, <code>get_alv_data</code> 사용</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zcl_2609_report_sflight.clas.abap</span><span class="cnote">Query Provider + SUBMIT 낚아채기</span><button type="button" class="copy" aria-label="zcl_2609_report_sflight.clas.abap 복사">복사</button></figcaption>
+<pre><code><span class="tk">class</span> zcl_2609_report_sflight <span class="tk">definition</span>
+  <span class="tk">public</span>
+  <span class="tk">final</span>
+  <span class="tk">create</span> <span class="tk">public</span> .
+
+  <span class="tk">public</span> <span class="tk">section</span>.
+
+    <span class="tk">interfaces</span> if_rap_query_provider .
+    <span class="tk">types</span> tr_carrid <span class="tk">type</span> <span class="tk">range</span> <span class="tk">of</span> sflight-carrid.
+    <span class="tk">types</span> tr_fldate <span class="tk">type</span> <span class="tk">range</span> <span class="tk">of</span> sflight-fldate.
+    <span class="tk">types</span> tt_sflight <span class="tk">type</span> <span class="tk">table</span> <span class="tk">of</span> sflight.
+
+    <span class="tk">types</span> tt_data <span class="tk">type</span> <span class="tk">table</span> <span class="tk">of</span> sflight <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+  <span class="tk">protected</span> <span class="tk">section</span>.
+  <span class="tk">private</span> <span class="tk">section</span>.
+
+    <span class="tk">class-methods</span> get_data
+      <span class="tk">importing</span>
+        !ir_carrid <span class="tk">type</span> tr_carrid
+        !ir_fldate <span class="tk">type</span> tr_fldate
+      <span class="tk">exporting</span>
+        !et_data   <span class="tk">type</span> tt_sflight .
+    <span class="tk">class-methods</span> get_alv_data
+      <span class="tk">importing</span>
+        !ir_carrid <span class="tk">type</span> tr_carrid
+        !ir_fldate <span class="tk">type</span> tr_fldate
+      <span class="tk">exporting</span>
+        !et_data   <span class="tk">type</span> tt_sflight .
+<span class="tk">ENDCLASS</span>.
+
+
+
+<span class="tk">CLASS</span> ZCL_2609_REPORT_SFLIGHT <span class="tk">IMPLEMENTATION</span>.
+
+
+<span class="tc">* &lt;SIGNATURE&gt;---------------------------------------------------------------------------------------+</span>
+<span class="tc">* | Static Private Method ZCL_2609_REPORT_SFLIGHT=&gt;GET_ALV_DATA</span>
+<span class="tc">* +-------------------------------------------------------------------------------------------------+</span>
+<span class="tc">* | [---&gt;] IR_CARRID                      TYPE        TR_CARRID</span>
+<span class="tc">* | [---&gt;] IR_FLDATE                      TYPE        TR_FLDATE</span>
+<span class="tc">* | [&lt;---] ET_DATA                        TYPE        TT_SFLIGHT</span>
+<span class="tc">* +--------------------------------------------------------------------------------------&lt;/SIGNATURE&gt;</span>
+  <span class="tk">method</span> get_alv_data.
+
+    <span class="tk">data</span> lr_data <span class="tk">type</span> <span class="tk">ref</span> <span class="tk">to</span> <span class="tk">data</span>.
+    <span class="tk">field-symbols</span> &lt;lt_alv&gt; <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span>.
+    <span class="tk">clear</span> et_data.
+
+    <span class="tc">" 1) ALV 화면 띄우지 말고 데이터만 달라고 예약</span>
+    cl_salv_bs_runtime_info=&gt;set( display  = abap_false
+                                  metadata = abap_false
+                                  <span class="tk">data</span>     = abap_true ).
+
+    <span class="tc">" 2) 리포트 실행 (리포트명, 선택화면 변수명은 형 걸로)</span>
+    <span class="tk">submit</span> yhl2609avlr001
+      <span class="tk">with</span> s_carrid <span class="tk">in</span> ir_carrid
+      <span class="tk">with</span> s_fldate <span class="tk">in</span> ir_fldate
+      <span class="tk">exporting</span> <span class="tk">list</span> <span class="tk">to</span> <span class="tk">memory</span>
+      <span class="tk">and</span> <span class="tk">return</span>.
+
+    <span class="tc">" 3) 낚아챈 데이터 꺼내기</span>
+    <span class="tk">try</span>.
+        cl_salv_bs_runtime_info=&gt;get_data_ref( <span class="tk">importing</span> r_data = lr_data ).
+        <span class="tk">assign</span> lr_data-&gt;* <span class="tk">to</span> &lt;lt_alv&gt;.
+        <span class="tk">if</span> &lt;lt_alv&gt; <span class="tk">is</span> <span class="tk">assigned</span>.
+          et_data = <span class="tk">corresponding</span> #( &lt;lt_alv&gt; ).
+        <span class="tk">endif</span>.
+      <span class="tk">catch</span> cx_salv_bs_sc_runtime_info.
+        <span class="tc">" 데이터 못 가져옴: 로그 or 예외 처리</span>
+    <span class="tk">endtry</span>.
+
+    <span class="tc">" 4) 반드시 정리 (안 하면 같은 세션 다음 호출이 꼬여요)</span>
+    cl_salv_bs_runtime_info=&gt;clear_all( ).
+
+  <span class="tk">endmethod</span>.
+
+
+<span class="tc">* &lt;SIGNATURE&gt;---------------------------------------------------------------------------------------+</span>
+<span class="tc">* | Static Private Method ZCL_2609_REPORT_SFLIGHT=&gt;GET_DATA</span>
+<span class="tc">* +-------------------------------------------------------------------------------------------------+</span>
+<span class="tc">* | [---&gt;] IR_CARRID                      TYPE        TR_CARRID</span>
+<span class="tc">* | [---&gt;] IR_FLDATE                      TYPE        TR_FLDATE</span>
+<span class="tc">* | [&lt;---] ET_DATA                        TYPE        TT_SFLIGHT</span>
+<span class="tc">* +--------------------------------------------------------------------------------------&lt;/SIGNATURE&gt;</span>
+  <span class="tk">method</span> get_data.
+
+    <span class="tk">select</span> <span class="tk">from</span> sflight
+    <span class="tk">fields</span> *
+    <span class="tk">where</span> carrid <span class="tk">in</span> @ir_carrid
+    <span class="tk">and</span> fldate <span class="tk">in</span> @ir_fldate
+    <span class="tk">into</span> <span class="tk">corresponding</span> <span class="tk">fields</span> <span class="tk">of</span> <span class="tk">table</span> @et_data.
+
+
+
+  <span class="tk">endmethod</span>.
+
+
+<span class="tc">* &lt;SIGNATURE&gt;---------------------------------------------------------------------------------------+</span>
+<span class="tc">* | Instance Public Method ZCL_2609_REPORT_SFLIGHT-&gt;IF_RAP_QUERY_PROVIDER~SELECT</span>
+<span class="tc">* +-------------------------------------------------------------------------------------------------+</span>
+<span class="tc">* | [---&gt;] IO_REQUEST                     TYPE REF TO IF_RAP_QUERY_REQUEST</span>
+<span class="tc">* | [---&gt;] IO_RESPONSE                    TYPE REF TO IF_RAP_QUERY_RESPONSE</span>
+<span class="tc">* | [!CX!] CX_RAP_QUERY_PROV_NOT_IMPL</span>
+<span class="tc">* | [!CX!] CX_RAP_QUERY_PROVIDER</span>
+<span class="tc">* +--------------------------------------------------------------------------------------&lt;/SIGNATURE&gt;</span>
+  <span class="tk">method</span> if_rap_query_provider~<span class="tk">select</span>.
+
+    <span class="tk">try</span>.
+        <span class="tc">" 1) 필터 -&gt; range</span>
+        <span class="tk">data</span>(lt_filter) = io_request-&gt;get_filter( )-&gt;get_as_ranges( ).
+
+        <span class="tk">data</span> lr_carrid <span class="tk">type</span> <span class="tk">range</span> <span class="tk">of</span> s_carr_id.
+        <span class="tk">data</span> lr_fldate <span class="tk">type</span> <span class="tk">range</span> <span class="tk">of</span> s_date.
+
+        <span class="tk">loop</span> <span class="tk">at</span> lt_filter assigning field-symbol(&lt;f&gt;).
+          <span class="tk">case</span> &lt;f&gt;-name.
+            <span class="tk">when</span> <span class="ts">'CARRID'</span>.
+              <span class="tk">move-corresponding</span> &lt;f&gt;-<span class="tk">range</span> <span class="tk">to</span> lr_carrid.
+            <span class="tk">when</span> <span class="ts">'FLDATE'</span>.
+              <span class="tk">move-corresponding</span> &lt;f&gt;-<span class="tk">range</span> <span class="tk">to</span> lr_fldate.
+          <span class="tk">endcase</span>.
+        <span class="tk">endloop</span>.
+
+        <span class="tc">" 2) 조회 로직 호출 (필터는 DB까지 내려보내기)</span>
+<span class="tc">**        get_data(</span>
+<span class="tc">**          exporting</span>
+<span class="tc">**            ir_carrid = lr_carrid</span>
+<span class="tc">**            ir_fldate = lr_fldate</span>
+<span class="tc">**          importing</span>
+<span class="tc">**            et_data   = data(lt_data)</span>
+<span class="tc">**        ).</span>
+
+        get_alv_data(
+          <span class="tk">exporting</span>
+            ir_carrid = lr_carrid
+            ir_fldate = lr_fldate
+          <span class="tk">importing</span>
+            et_data   = <span class="tk">data</span>(lt_data)
+        ).
+
+
+
+
+
+        <span class="tc">" 3) 정렬</span>
+        <span class="tk">data</span>(lt_sort) = <span class="tk">value</span> abap_sortorder_tab(
+          <span class="tk">for</span> s <span class="tk">in</span> io_request-&gt;get_sort_elements( )
+                   ( name = s-element_name <span class="tk">descending</span> = s-descending ) ).
+        <span class="tk">if</span> lt_sort <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+          <span class="tk">sort</span> lt_data <span class="tk">by</span> (lt_sort).
+        <span class="tk">endif</span>.
+
+        <span class="tc">" 4) 전체 건수 ($count)</span>
+        <span class="tk">if</span> io_request-&gt;is_total_numb_of_rec_requested( ).
+          io_response-&gt;set_total_number_of_records( <span class="tk">lines</span>( lt_data ) ).
+        <span class="tk">endif</span>.
+
+        <span class="tc">" 5) 페이징 ($top, $skip)</span>
+        <span class="tk">if</span> io_request-&gt;is_data_requested( ).
+          <span class="tk">data</span>(lv_off)  = io_request-&gt;get_paging( )-&gt;get_offset( ).
+          <span class="tk">data</span>(lv_size) = io_request-&gt;get_paging( )-&gt;get_page_size( ).
+          <span class="tk">if</span> lv_size = if_rap_query_paging=&gt;page_size_unlimited.
+            lv_size = <span class="tk">lines</span>( lt_data ).
+          <span class="tk">endif</span>.
+          <span class="tk">data</span>(lt_page) = <span class="tk">value</span> zcl_2609_report_sflight=&gt;tt_data(
+            <span class="tk">for</span> l <span class="tk">in</span> lt_data <span class="tk">from</span> lv_off + <span class="tn">1</span> <span class="tk">to</span> lv_off + lv_size ( l ) ).
+          io_response-&gt;set_data( lt_page ).
+        <span class="tk">endif</span>.
+
+      <span class="tk">catch</span> cx_rap_query_filter_no_range <span class="tk">into</span> <span class="tk">data</span>(lx).
+        <span class="tc">" 필터 변환 실패 처리</span>
+    <span class="tk">endtry</span>.
+
+
+
+  <span class="tk">endmethod</span>.
+<span class="tk">ENDCLASS</span>.</code></pre>
+</figure>
+</section>
+<section id="step4" class="step"><span class="badge" aria-hidden="true">4</span><h2>Service Definition / Service Binding</h2><ul class="pts"><li>Custom Entity 를 <code>Flights</code> 라는 이름으로 expose. 호출 URL 의 엔티티셋 이름이 됨</li><li>Service Binding 은 <code>OData V4 - Web API</code> 로 생성하고 Activate. 이 단계는 소스 없이 ADT 에서 생성</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zsrv_yhl2609_sflight.srvd.srvdsrv</span><span class="cnote">Service Definition</span><button type="button" class="copy" aria-label="zsrv_yhl2609_sflight.srvd.srvdsrv 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'ALV Data Snapshot'</span>
+<span class="tk">define</span> <span class="tk">service</span> ZSRV_YHL2609_SFLIGHT {
+  <span class="tk">expose</span> zu_2609_sflight <span class="tk">as</span> Flights;
+}</code></pre>
+</figure>
+<div class="tblwrap"><table class="grid"><thead><tr><th>항목</th><th>값</th></tr></thead><tbody><tr><td>Binding Type</td><td>OData V4 - Web API (UI 없음, API 소비용)</td></tr><tr><td>Service Definition</td><td><code>ZSRV_YHL2609_SFLIGHT</code></td></tr><tr><td>Entity Set</td><td><code>Flights</code></td></tr><tr><td>Binding 이름</td><td>환경에 맞게 지정 (문서의 URL 예시는 <code>&lt;바인딩명&gt;</code> 로 표기)</td></tr></tbody></table></div></section>
+<section id="step5" class="step"><span class="badge" aria-hidden="true">5</span><h2>호출 테스트</h2><ul class="pts"><li>URL 은 Service Binding 화면의 Service URL 을 기준으로 하고 뒤에 <code>/Flights</code> 를 붙임. 아래 <code>&lt;바인딩명&gt;</code> 은 자리표시</li><li>필드명은 Custom Entity 에 정의한 이름 그대로. 소문자 <code>carrid</code>, <code>fldate</code> (대문자 <code>CARRID</code> 로 쓰면 못 찾음)</li><li>문자열은 작은따옴표, 날짜는 따옴표 없이 <code>2026-10-27</code> 형식. 조건은 <code>and</code> 로 연결, 옵션 사이는 <code>&amp;</code> 로 연결</li><li>필터 없이 호출하면 리포트 전체가 실행됨. 조건을 꼭 포함해서 호출</li></ul>
+<h4>1. 요청</h4>
+<figure class="code">
+<figcaption><span class="fname">항공사 단일 조건</span><span class="cnote">필터 1개</span><button type="button" class="copy" aria-label="항공사 단일 조건 복사">복사</button></figcaption>
+<pre><code><span class="tk">GET</span> /sap/opu/odata4/sap/&lt;바인딩명&gt;/srvd_a2x/sap/zsrv_yhl2609_sflight/0001/Flights?$filter=carrid eq <span class="ts">'LH'</span></code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">두 필드 AND</span><span class="cnote">carrid + fldate 범위</span><button type="button" class="copy" aria-label="두 필드 AND 복사">복사</button></figcaption>
+<pre><code><span class="tk">GET</span> /sap/opu/odata4/sap/&lt;바인딩명&gt;/srvd_a2x/sap/zsrv_yhl2609_sflight/0001/Flights?$filter=carrid eq <span class="ts">'LH'</span> and fldate ge <span class="tn">2026-10-01</span> and fldate le <span class="tn">2026-10-31</span></code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">옵션 조합</span><span class="cnote">$top, $orderby, $count</span><button type="button" class="copy" aria-label="옵션 조합 복사">복사</button></figcaption>
+<pre><code><span class="tk">GET</span> /sap/opu/odata4/sap/&lt;바인딩명&gt;/srvd_a2x/sap/zsrv_yhl2609_sflight/0001/Flights?$filter=carrid eq <span class="ts">'LH'</span>&amp;$top=10&amp;$orderby=fldate desc&amp;$count=true</code></pre>
+</figure>
+<h4>2. 응답</h4>
+<figure class="code">
+<figcaption><span class="fname">응답 형태</span><span class="cnote">예시 값, 일부 필드 생략</span><button type="button" class="copy" aria-label="응답 형태 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"@odata.context"</span>: <span class="ts">"..."</span>,
+  <span class="tkey">"@odata.count"</span>: <span class="tn">1</span>,
+  <span class="tkey">"value"</span>: [
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"LH"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0400"</span>,
+      <span class="tkey">"fldate"</span>: <span class="ts">"2026-10-27"</span>,
+      <span class="tkey">"PRICE"</span>: <span class="tn">666.00</span>,
+      <span class="tkey">"CURRENCY"</span>: <span class="ts">"EUR"</span>,
+      <span class="tkey">"SEATSMAX"</span>: <span class="tn">385</span>
+    }
+  ]
+}</code></pre>
+</figure>
+</section>
+<section id="trouble" class="step"><span class="badge" aria-hidden="true">6</span><h2>막혔던 지점 정리</h2><ul class="pts"><li>SUBMIT 으로 넘긴 조건이 리포트에 전달되지 않았던 문제. 원인은 선택화면 변수 이름 오타</li></ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody><tr><td>항공사 조건이 SUBMIT 에 전달되지 않음. 에러 없이 조회됨</td><td>호출 쪽은 <code>with s_carrid in ir_carrid</code> (r 두 개), 리포트 선언은 <code>s_carid</code> (r 한 개). 이름이 맞지 않는 <code>WITH ... IN</code> 은 에러 없이 무시됨</td><td>리포트 선택화면을 <code>s_carrid</code> 로 수정해 호출 쪽 이름과 일치시킴. 값이 의심되면 리포트 START-OF-SELECTION 에서 <code>s_carrid[]</code> 를 확인</td></tr></tbody></table></div></section>
+<section id="todo" class="step"><span class="badge" aria-hidden="true">7</span><h2>운영 전 보완 메모</h2><ul class="pts"><li>동작은 확인되었고, 운영 반영 전에 아래 항목을 점검</li><li><code>SUBMIT</code> 방식은 ABAP Cloud(Tier 1)에서 사용할 수 없으므로 장기적으로는 조회 로직을 클래스로 분리하는 방향(<code>get_data</code>)이 목적지</li></ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>항목</th><th>이유</th><th>조치</th></tr></thead><tbody><tr><td>빈 <code>CATCH</code> 블록 (<code>cx_rap_query_filter_no_range</code>, <code>cx_salv_bs_sc_runtime_info</code>)</td><td>에러가 나도 빈 결과로 보임. 서로 다른 필드를 섞은 복잡한 <code>or</code> 조합은 range 하나로 표현되지 않음</td><td>예외를 다시 던지거나 로그를 남김</td></tr><tr><td>필수 조건 / 상한 건수</td><td>매 호출마다 리포트가 전체 실행됨. <code>$top</code> 을 줘도 비용은 동일</td><td>필수 필터 검사와 최대 건수 제한 추가</td></tr><tr><td>TOP include 하단 <code>select from scarr ... @data(gt_data)</code></td><td>include 로드 시 실행되어 SUBMIT 때마다 같이 실행됨</td><td>쓰지 않으면 삭제, 쓰면 START-OF-SELECTION 으로 이동</td></tr><tr><td>권한</td><td>API 호출 사용자 권한으로 리포트가 실행됨</td><td>테스트 계정으로 권한 확인</td></tr><tr><td>화면 의존 코드</td><td><code>MESSAGE TYPE 'I'</code>, 팝업, <code>CALL SCREEN</code> 은 GUI 없는 호출에서 문제될 수 있음</td><td>리포트 본체에서 해당 코드 유무 확인</td></tr></tbody></table></div></section>
+</main>
+</div>
+<footer>리포트 YHL2609AVLR001 · 클래스 ZCL_2609_REPORT_SFLIGHT · Service Definition ZSRV_YHL2609_SFLIGHT · OData V4 Web API</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
