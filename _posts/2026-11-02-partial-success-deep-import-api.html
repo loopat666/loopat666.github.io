@@ -1,0 +1,1325 @@
+---
+layout: post
+categories: [RAP]
+tags: [RAP]
+title: "RAP unmanaged deep action으로 항공사·항공편 부분 성공 수신 API 만들기"
+description: "한 번의 POST로 항공사와 항공편을 같이 받고, 행마다 검증해서 통과한 건만 저장하는 API를 만들어봅니다"
+date: 2026-11-02 22:20:22 +0900
+---
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>partial success deep import api with unmanaged rap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+figure.code.long pre{max-height:640px;overflow:auto}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>partial success deep import api with unmanaged rap</h1>
+<p>one request carries airlines and flights together, every row is checked on its own, good rows are saved parent first and bad rows come back with a reason.</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="개발 단계"><ol><li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li><li><a href="#tables"><span class="num">1</span><span class="lbl">테이블</span></a></li><li><a href="#input"><span class="num">2</span><span class="lbl">수신 구조 (입력 AE)</span></a></li><li><a href="#output"><span class="num">3</span><span class="lbl">리턴 구조 (리턴 AE)</span></a></li><li><a href="#abstract"><span class="num">4</span><span class="lbl">Abstract BDEF</span></a></li><li><a href="#bdef"><span class="num">5</span><span class="lbl">BDEF (unmanaged)</span></a></li><li><a href="#logic"><span class="num">6</span><span class="lbl">로직 클래스</span></a></li><li><a href="#bp"><span class="num">7</span><span class="lbl">BP 클래스</span></a></li><li><a href="#test"><span class="num">8</span><span class="lbl">호출 테스트</span></a></li><li><a href="#trouble"><span class="num">9</span><span class="lbl">막혔던 지점 정리</span></a></li></ol></nav>
+<main><section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2><ul class="pts"><li>한 번의 호출로 항공사(헤더)와 항공편(아이템)을 함께 받는 static action <code>ImportData</code>를 unmanaged RAP로 만든다.</li><li>행마다 따로 검증해서 통과한 행만 저장하고, 실패한 행은 사유와 함께 응답한다 (부분 성공).</li><li>개발 순서는 테이블 → 입력/리턴 AE → abstract BDEF → BDEF → 로직 클래스 → BP 클래스 → 호출 테스트.</li></ul>
+<ol class="flow" aria-label="처리 흐름">
+<li><b>호출자</b><span>POST + JSON body</span></li>
+<li><b>서비스</b><span>OData V4 static action</span></li>
+<li><b>검증</b><span>recv_data, 행별 판정</span></li>
+<li><b>저장</b><span>save, 항공사 → 항공편</span></li>
+<li><b>결과</b><span>요약 1줄 + 행별 S/E</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>종류</th><th>이름</th><th>역할</th></tr></thead><tbody><tr><td>DB 테이블</td><td><code>yhl2609t0030</code></td><td>항공사 (헤더)</td></tr><tr><td>DB 테이블</td><td><code>yhl2609t0031</code></td><td>항공편 (아이템)</td></tr><tr><td>입력 AE</td><td><code>za_yhl2609_0030</code> (root)</td><td>HEADER / DATA / ITEMS를 묶는 입력 root</td></tr><tr><td>입력 AE</td><td><code>za_yhl2609_0031</code></td><td>HEADER: 송장 정보 (날짜, 시간, 추적번호), 저장하지 않음</td></tr><tr><td>입력 AE</td><td><code>za_yhl2609_0032</code></td><td>DATA: 항공사 N건</td></tr><tr><td>입력 AE</td><td><code>za_yhl2609_0033</code></td><td>ITEMS: 항공편 N건</td></tr><tr><td>리턴 AE</td><td><code>za_yhl2609_0035</code> (root)</td><td>RETURN 메시지 N건을 묶는 리턴 root</td></tr><tr><td>리턴 AE</td><td><code>za_yhl2609_0036</code></td><td>메시지 1행 (carrid, mtype, message)</td></tr><tr><td>Abstract BDEF</td><td><code>za_yhl2609_0030</code>, <code>za_yhl2609_0035</code></td><td>AE를 action 파라미터/결과로 쓰기 위한 계약</td></tr><tr><td>RVE</td><td><code>zr_yhl2609_0030</code>, <code>zr_yhl2609_0031</code></td><td>Airline / Schedule 루트 뷰 엔티티</td></tr><tr><td>BDEF</td><td><code>zr_yhl2609_0030</code></td><td>unmanaged, static action <code>ImportData</code></td></tr><tr><td>BP 클래스</td><td><code>zbp_r_yhl2609_0030</code></td><td>핸들러 + saver, 버퍼 홀더</td></tr><tr><td>로직 클래스</td><td><code>zcl_2609_airsched_partial</code></td><td>검증, 버퍼 적재, 저장, 리턴 조립</td></tr><tr><td>서비스</td><td><code>zsrv_yhl2609_0030</code></td><td>OData V4 서비스 (v0001)</td></tr></tbody></table></div>
+</section>
+<section id="tables" class="step"><span class="badge" aria-hidden="true">1</span><h2>테이블</h2><ul class="pts"><li>항공사 <code>yhl2609t0030</code>은 <code>mandt + carrid</code>, 항공편 <code>yhl2609t0031</code>은 <code>mandt + carrid + connid</code>가 키.</li><li>항공사 테이블에서 <code>key carrid</code>를 빠뜨리면 키가 <code>mandt</code> 하나뿐이라 클라이언트당 1건만 저장된다.</li><li><code>distance</code>는 <code>distid</code>와 수량-단위 짝이라 <code>@Semantics.quantity.unitOfMeasure</code>로 묶는다.</li></ul>
+<figure class="code">
+<figcaption><span class="fname">yhl2609t0030.tabl.astabldt</span><span class="cnote">항공사</span><button type="button" class="copy" aria-label="yhl2609t0030.tabl.astabldt 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span> : <span class="ts">'Airlines'</span>
+<span class="ta">@AbapCatalog.enhancement.category</span> : <span class="ts">#NOT_EXTENSIBLE</span>
+<span class="ta">@AbapCatalog.tableCategory</span> : <span class="ts">#TRANSPARENT</span>
+<span class="ta">@AbapCatalog.deliveryClass</span> : <span class="ts">#A</span>
+<span class="ta">@AbapCatalog.dataMaintenance</span> : <span class="ts">#ALLOWED</span>
+<span class="tk">define</span> <span class="tk">table</span> yhl2609t0030 {
+
+  <span class="tk">key</span> mandt       : mandt <span class="tk">not</span> <span class="tk">null</span>;
+  <span class="tk">key</span> carrid      : s_carr_id <span class="tk">not</span> <span class="tk">null</span>;
+  carrname        : s_carrname;
+  currcode        : s_currcode;
+  url             : s_carrurl;
+  created_by      : abp_creation_user;
+  created_at      : abp_creation_tstmpl;
+  last_changed_by : abp_lastchange_user;
+  last_changed_at : abp_lastchange_tstmpl;
+
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">yhl2609t0031.tabl.astabldt</span><span class="cnote">항공편</span><button type="button" class="copy" aria-label="yhl2609t0031.tabl.astabldt 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span> : <span class="ts">'Schedule'</span>
+<span class="ta">@AbapCatalog.enhancement.category</span> : <span class="ts">#NOT_EXTENSIBLE</span>
+<span class="ta">@AbapCatalog.tableCategory</span> : <span class="ts">#TRANSPARENT</span>
+<span class="ta">@AbapCatalog.deliveryClass</span> : <span class="ts">#A</span>
+<span class="ta">@AbapCatalog.dataMaintenance</span> : <span class="ts">#RESTRICTED</span>
+<span class="tk">define</span> <span class="tk">table</span> yhl2609t0031 {
+
+  <span class="tk">key</span> mandt       : s_mandt <span class="tk">not</span> <span class="tk">null</span>;
+  <span class="tk">key</span> carrid      : s_carr_id <span class="tk">not</span> <span class="tk">null</span>;
+  <span class="tk">key</span> connid      : s_conn_id <span class="tk">not</span> <span class="tk">null</span>;
+  countryfr       : land1;
+  cityfrom        : s_from_cit;
+  airpfrom        : s_fromairp;
+  countryto       : land1;
+  cityto          : s_to_city;
+  airpto          : s_toairp;
+  fltime          : s_fltime;
+  deptime         : s_dep_time;
+  arrtime         : s_arr_time;
+  <span class="ta">@Semantics.quantity.unitOfMeasure</span> : <span class="ts">'yhl2609t0031.distid'</span>
+  distance        : s_distance;
+  distid          : s_distid;
+  fltype          : s_fltype;
+  period          : s_period;
+  created_by      : abp_creation_user;
+  created_at      : abp_creation_tstmpl;
+  last_changed_by : abp_lastchange_user;
+  last_changed_at : abp_lastchange_tstmpl;
+
+}</code></pre>
+</figure>
+</section>
+<section id="input" class="step"><span class="badge" aria-hidden="true">2</span><h2>수신 구조 (입력 AE)</h2><ul class="pts"><li>root AE 아래에 <code>HEADER</code>(송장 정보), <code>DATA</code>(항공사 N건), <code>ITEMS</code>(항공편 N건)가 형제로 달린다.</li><li><code>DATA</code>와 <code>ITEMS</code>를 이어주는 건 <code>carrid</code> 값뿐이라, 부모 존재 여부는 로직 클래스에서 직접 검증한다.</li><li><code>currcode</code>(통화키), <code>distid</code>(단위) 같은 형식 타입은 존재하지 않는 값이 오면 로직에 닿기 전에 HTTP 400이 난다.</li></ul>
+<figure class="code">
+<figcaption><span class="fname">za_yhl2609_0030.ddls.asddls</span><span class="cnote">root</span><button type="button" class="copy" aria-label="za_yhl2609_0030.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Airlines - Import'</span>
+<span class="tk">define</span> <span class="tk">root</span> <span class="tk">abstract</span> <span class="tk">entity</span> za_yhl2609_0030
+{
+  <span class="tk">key</span> dummykey : abap.char( <span class="tn">1</span> );
+      HEADER   : <span class="tk">composition</span> [<span class="tn">1</span>..<span class="tn">1</span>] <span class="tk">of</span> za_yhl2609_0031;
+      DATA     : <span class="tk">composition</span> [<span class="tn">1</span>..*] <span class="tk">of</span> za_yhl2609_0032;
+      ITEMS    : <span class="tk">composition</span> [<span class="tn">1</span>..*] <span class="tk">of</span> za_yhl2609_0033;
+
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">za_yhl2609_0031.ddls.asddls</span><span class="cnote">HEADER</span><button type="button" class="copy" aria-label="za_yhl2609_0031.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Import Header'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> za_yhl2609_0031
+{
+  <span class="tk">key</span> dummykey       : abap.char( <span class="tn">1</span> );
+      IV_DATE        : abap.dats;
+      IV_TIME        : abap.tims;
+      IV_tracking_no : abap.char( <span class="tn">36</span> );
+
+      _ToParent      : <span class="tk">association</span> <span class="tk">to</span> <span class="tk">parent</span> za_yhl2609_0030 <span class="tk">on</span> $projection.dummykey = _ToParent.dummykey;
+
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">za_yhl2609_0032.ddls.asddls</span><span class="cnote">DATA (항공사)</span><button type="button" class="copy" aria-label="za_yhl2609_0032.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Import Data'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> za_yhl2609_0032
+{
+  <span class="tk">key</span> dummykey  : abap.char( <span class="tn">1</span> );
+      carrid    : s_carr_id;
+      carrname  : s_carrname;
+      currcode  : s_currcode;
+      url       : s_carrurl;
+      _ToParent : <span class="tk">association</span> <span class="tk">to</span> <span class="tk">parent</span> za_yhl2609_0030 <span class="tk">on</span> $projection.dummykey = _ToParent.dummykey;
+
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">za_yhl2609_0033.ddls.asddls</span><span class="cnote">ITEMS (항공편)</span><button type="button" class="copy" aria-label="za_yhl2609_0033.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Import Items'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> za_yhl2609_0033
+{
+  <span class="tk">key</span> dummykey  : abap.char( <span class="tn">1</span> );
+      carrid    : s_carr_id;
+      connid    : s_conn_id;
+      countryfr : land1;
+      cityfrom  : s_from_cit;
+      airpfrom  : s_fromairp;
+      countryto : land1;
+      cityto    : s_to_city;
+      airpto    : s_toairp;
+      fltime    : abap.int4;
+      deptime   : s_dep_time;
+      arrtime   : s_arr_time;
+      <span class="ta">@Semantics.quantity.unitOfMeasure</span> : <span class="ts">'distid'</span>
+      distance  : s_distance;
+      distid    : s_distid;
+      fltype    : s_fltype;
+      period    : s_period;
+      _ToParent : <span class="tk">association</span> <span class="tk">to</span> <span class="tk">parent</span> za_yhl2609_0030 <span class="tk">on</span> $projection.dummykey = _ToParent.dummykey;
+
+}</code></pre>
+</figure>
+</section>
+<section id="output" class="step"><span class="badge" aria-hidden="true">3</span><h2>리턴 구조 (리턴 AE)</h2><ul class="pts"><li>root 1건 아래 <code>RETURN</code> 메시지가 N건 달리는 구조. 건마다 <code>carrid</code>, <code>mtype</code>(S/E/W), <code>message</code>를 내려준다.</li><li>필드 이름이 그대로 JSON 키가 되므로 <code>messgae</code> 오타는 서비스 공개 전에 <code>message</code>로 고쳤다.</li></ul>
+<figure class="code">
+<figcaption><span class="fname">za_yhl2609_0035.ddls.asddls</span><span class="cnote">root</span><button type="button" class="copy" aria-label="za_yhl2609_0035.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Return -'</span>
+<span class="tk">define</span> <span class="tk">root</span> <span class="tk">abstract</span> <span class="tk">entity</span> za_yhl2609_0035
+{
+  <span class="tk">key</span> dummykey : abap.char( <span class="tn">1</span> );
+      RETURN   : <span class="tk">composition</span> [<span class="tn">1</span>..*] <span class="tk">of</span> za_yhl2609_0036;
+
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">za_yhl2609_0036.ddls.asddls</span><span class="cnote">메시지 행</span><button type="button" class="copy" aria-label="za_yhl2609_0036.ddls.asddls 복사">복사</button></figcaption>
+<pre><code><span class="ta">@EndUserText.label</span>: <span class="ts">'Return - Message'</span>
+<span class="tk">define</span> <span class="tk">abstract</span> <span class="tk">entity</span> za_yhl2609_0036
+{
+  <span class="tk">key</span> dummykey  : abap.char( <span class="tn">1</span> );
+      carrid    : s_carr_id;
+      mtype     : bapi_mtype;
+      message   : bapi_msg;
+
+      _ToParent : <span class="tk">association</span> <span class="tk">to</span> <span class="tk">parent</span> za_yhl2609_0035 <span class="tk">on</span> $projection.dummykey = _ToParent.dummykey;
+
+}</code></pre>
+</figure>
+</section>
+<section id="abstract" class="step"><span class="badge" aria-hidden="true">4</span><h2>Abstract BDEF</h2><ul class="pts"><li>action 파라미터/결과로 쓰는 AE는 root마다 abstract BDEF가 있어야 한다.</li><li><code>abstract; strict ( 2 ); with hierarchy;</code> 헤더 아래에 엔티티별로 빈 <code>define behavior</code>만 둔다.</li></ul>
+<figure class="code">
+<figcaption><span class="fname">za_yhl2609_0030.bdef.asbdef</span><span class="cnote">입력</span><button type="button" class="copy" aria-label="za_yhl2609_0030.bdef.asbdef 복사">복사</button></figcaption>
+<pre><code><span class="tk">abstract</span>;
+<span class="tk">strict</span> ( <span class="tn">2</span> );
+<span class="tk">with</span> <span class="tk">hierarchy</span>;
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> za_yhl2609_0030 { }
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> za_yhl2609_0031 { }
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> za_yhl2609_0032 { }
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> za_yhl2609_0033 { }</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">za_yhl2609_0035.bdef.asbdef</span><span class="cnote">리턴</span><button type="button" class="copy" aria-label="za_yhl2609_0035.bdef.asbdef 복사">복사</button></figcaption>
+<pre><code><span class="tk">abstract</span>;
+<span class="tk">strict</span> ( <span class="tn">2</span> );
+<span class="tk">with</span> <span class="tk">hierarchy</span>;
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> za_yhl2609_0035 { }
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> za_yhl2609_0036 { }</code></pre>
+</figure>
+</section>
+<section id="bdef" class="step"><span class="badge" aria-hidden="true">5</span><h2>BDEF (unmanaged)</h2><ul class="pts"><li><code>deep parameter</code>로 입력 트리를, <code>deep result</code>로 리턴 트리를 주고받는 static action. 응답은 <code>value</code> 배열 안에 root 1건으로 내려온다.</li><li>항공편을 따로 생성하지 않으므로 <code>association _Schedule;</code>만 선언하고 <code>create</code>는 쓰지 않는다. BP에도 <code>cba_Schedule</code>을 두지 않는다.</li><li><code>authorization master ( global )</code>을 쓰므로 BP에 <code>get_global_authorizations</code> 메서드가 있어야 한다.</li></ul>
+<figure class="code">
+<figcaption><span class="fname">zr_yhl2609_0030.bdef.asbdef</span><span class="cnote">Airline / Schedule</span><button type="button" class="copy" aria-label="zr_yhl2609_0030.bdef.asbdef 복사">복사</button></figcaption>
+<pre><code><span class="tk">unmanaged</span> <span class="tk">implementation</span> <span class="tk">in</span> <span class="tk">class</span> zbp_r_yhl2609_0030 <span class="tk">unique</span>;
+<span class="tk">strict</span> ( <span class="tn">2</span> );
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> zr_yhl2609_0030 <span class="tk">alias</span> Airline
+<span class="tk">lock</span> <span class="tk">master</span>
+<span class="tk">authorization</span> <span class="tk">master</span> ( global )
+{
+  <span class="tk">field</span> ( <span class="tk">readonly</span> ) Carrid;
+  <span class="tk">association</span> _Schedule;
+
+  <span class="tk">static</span> <span class="tk">action</span> ImportData <span class="tk">deep</span> <span class="tk">parameter</span> za_yhl2609_0030 <span class="tk">deep</span> <span class="tk">result</span> [<span class="tn">1</span>..*] za_yhl2609_0035;
+}
+
+<span class="tk">define</span> <span class="tk">behavior</span> <span class="tk">for</span> zr_yhl2609_0031 <span class="tk">alias</span> Schedule
+<span class="tk">lock</span> <span class="tk">dependent</span> <span class="tk">by</span> _Parent
+<span class="tk">authorization</span> <span class="tk">dependent</span> <span class="tk">by</span> _Parent
+{
+  <span class="tk">field</span> ( <span class="tk">readonly</span> ) Carrid, Connid;
+  <span class="tk">association</span> _Parent;
+}</code></pre>
+</figure>
+</section>
+<section id="logic" class="step"><span class="badge" aria-hidden="true">6</span><h2>로직 클래스</h2><ul class="pts"><li><code>recv_data</code>: 빈 요청 확인 → 항공사 검증 → 항공편 검증(부모 판정 포함) → 통과행만 버퍼 적재 → 행별 로그 → 리턴 조립 → 맨 앞에 요약 1줄.</li><li>검증 규칙 하나 = 메서드 하나. 새 규칙은 <code>validate_airline</code> / <code>validate_schedule</code>에 한 줄만 추가한다.</li><li><code>save</code>는 부모(항공사) → 자식(항공편) 순으로 insert하고 로그는 항상 저장한다. <code>COMMIT WORK</code>는 쓰지 않는다.</li></ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>상황</th><th>처리</th></tr></thead><tbody><tr><td>요청 안에서 같은 키가 2번 이상</td><td>둘 다 에러 (어느 쪽이 맞는지 알 수 없음)</td></tr><tr><td>이미 DB에 있는 항공사 / 항공편</td><td>에러 (이미 수신됨)</td></tr><tr><td>같은 LUW의 앞선 호출에서 이미 접수된 키</td><td>이번 행만 에러 (먼저 온 쪽이 우선)</td></tr><tr><td>같이 보낸 항공사가 실패</td><td>그 항공사의 항공편도 함께 에러</td></tr><tr><td>항공사 없이 항공편만 전송</td><td>DB 또는 같은 LUW에 항공사가 있으면 접수, 없으면 에러</td></tr></tbody></table></div>
+<figure class="code long">
+<figcaption><span class="fname">zcl_2609_airsched_partial.clas.abap</span><span class="cnote">로직 클래스 전체</span><button type="button" class="copy" aria-label="zcl_2609_airsched_partial.clas.abap 복사">복사</button></figcaption>
+<pre><code><span class="tc">"==============================================================</span>
+<span class="tc">" ZCL_2609_AIRSCHED_PARTIAL</span>
+<span class="tc">"  - 항공사(yhl2609t0030) + 항공편(yhl2609t0031) 부분 성공 수신 로직</span>
+<span class="tc">"  - 입력 AE : za_yhl2609_0031(HEADER) / 0032(DATA) / 0033(ITEMS)</span>
+<span class="tc">"  - 리턴 AE : za_yhl2609_0036 (carrid, mtype, message)</span>
+<span class="tc">"  - 정책</span>
+<span class="tc">"    · 행 단위 판정: 통과행만 버퍼 적재, 에러행 skip (부분 성공)</span>
+<span class="tc">"    · 항공사가 같은 요청에서 실패하면 그 carrid 의 항공편도 실패</span>
+<span class="tc">"    · 항공사 없이 항공편만 와도 OK (DB 또는 같은 LUW 에 항공사가 있으면)</span>
+<span class="tc">"    · 리턴 1행 = 요약(S/W/E), 2행~ = 항공사 행별 → 항공편 행별</span>
+<span class="tc">"==============================================================</span>
+<span class="tk">class</span> zcl_2609_airsched_partial <span class="tk">definition</span>
+  <span class="tk">public</span>
+  <span class="tk">final</span>
+  <span class="tk">create</span> <span class="tk">public</span>.
+
+  <span class="tk">public</span> <span class="tk">section</span>.
+
+    <span class="tc">"--- 수신/결과 (AE 기준) ---</span>
+    <span class="tk">types</span> ty_header   <span class="tk">type</span> za_yhl2609_0031.
+    <span class="tk">types</span> tt_data     <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> za_yhl2609_0032 <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+    <span class="tk">types</span> tt_items    <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> za_yhl2609_0033 <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+    <span class="tk">types</span> tt_return   <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> za_yhl2609_0036 <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+
+    <span class="tc">"--- 저장 버퍼 (DB 테이블 기준) ---</span>
+    <span class="tk">types</span> tt_airline  <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> yhl2609t0030 <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+    <span class="tk">types</span> tt_schedule <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> yhl2609t0031 <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+
+    <span class="tc">"--- 로그 (로그 테이블 생성 전 임시 타입) ---</span>
+    <span class="tk">types</span>: <span class="tk">begin</span> <span class="tk">of</span> ty_log,
+             request_id  <span class="tk">type</span> sysuuid_x16,      <span class="tc">" recv_data 호출 1회 = 1 ID</span>
+             tracking_no <span class="tk">type</span> c length <span class="tn">36</span>,      <span class="tc">" HEADER-IV_tracking_no</span>
+             recv_date   <span class="tk">type</span> d,                <span class="tc">" HEADER-IV_DATE</span>
+             recv_time   <span class="tk">type</span> t,                <span class="tc">" HEADER-IV_TIME</span>
+             obj         <span class="tk">type</span> c length <span class="tn">1</span>,       <span class="tc">" A = 항공사 / S = 항공편</span>
+             seq         <span class="tk">type</span> i,                <span class="tc">" 해당 배열 안에서의 순번</span>
+             carrid      <span class="tk">type</span> s_carr_id,
+             connid      <span class="tk">type</span> s_conn_id,
+             mtype       <span class="tk">type</span> bapi_mtype,       <span class="tc">" S / E</span>
+             message     <span class="tk">type</span> bapi_msg,
+           <span class="tk">end</span> <span class="tk">of</span> ty_log.
+    <span class="tk">types</span> tt_log <span class="tk">type</span> <span class="tk">standard</span> <span class="tk">table</span> <span class="tk">of</span> ty_log <span class="tk">with</span> <span class="tk">empty</span> <span class="tk">key</span>.
+
+    <span class="tc">"! 수신: 항공사 검증 → 항공편 검증(부모 판정 포함) → 통과행만 버퍼 적재</span>
+    <span class="tc">"! 리턴: 1행 = 요약(S 전부성공 / W 일부성공 / E 전부실패), 2행~ = 행별 결과</span>
+    <span class="tk">methods</span> recv_data
+      <span class="tk">importing</span> is_header        <span class="tk">type</span> ty_header
+                it_data          <span class="tk">type</span> tt_data
+                it_items         <span class="tk">type</span> tt_items
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_return) <span class="tk">type</span> tt_return.
+
+    <span class="tc">"! 저장: 본 데이터(버퍼 있을 때만, 부모 → 자식 순) → 로그(항상)</span>
+    <span class="tk">methods</span> save.
+
+  <span class="tk">private</span> <span class="tk">section</span>.
+
+    <span class="tk">constants</span> gc_ok_msg <span class="tk">type</span> bapi_msg <span class="tk">value</span> <span class="ts">'접수 완료'</span>.
+    <span class="tk">constants</span> gc_obj_air <span class="tk">type</span> c length <span class="tn">1</span> <span class="tk">value</span> <span class="ts">'A'</span>.
+    <span class="tk">constants</span> gc_obj_sch <span class="tk">type</span> c length <span class="tn">1</span> <span class="tk">value</span> <span class="ts">'S'</span>.
+
+    <span class="tc">"--- 에러 1건 = (몇 번째 행, 메시지) ---</span>
+    <span class="tk">types</span>: <span class="tk">begin</span> <span class="tk">of</span> ty_err,
+             seq  <span class="tk">type</span> i,
+             text <span class="tk">type</span> string,
+           <span class="tk">end</span> <span class="tk">of</span> ty_err.
+    <span class="tk">types</span> tt_err  <span class="tk">type</span> <span class="tk">sorted</span> <span class="tk">table</span> <span class="tk">of</span> ty_err <span class="tk">with</span> <span class="tk">non-unique</span> <span class="tk">key</span> seq.
+    <span class="tk">types</span> tt_carr <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> s_carr_id <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">types</span>: <span class="tk">begin</span> <span class="tk">of</span> ty_conn,
+             carrid <span class="tk">type</span> s_carr_id,
+             connid <span class="tk">type</span> s_conn_id,
+           <span class="tk">end</span> <span class="tk">of</span> ty_conn.
+    <span class="tk">types</span> tt_conn <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> ty_conn <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> carrid connid.
+
+    <span class="tk">data</span> mt_airline  <span class="tk">type</span> tt_airline.   <span class="tc">" 저장 대기 항공사 (성공행만)</span>
+    <span class="tk">data</span> mt_schedule <span class="tk">type</span> tt_schedule.  <span class="tc">" 저장 대기 항공편 (성공행만)</span>
+    <span class="tk">data</span> mt_log      <span class="tk">type</span> tt_log.       <span class="tc">" 수신 로그 (성공/실패 무관 전부)</span>
+    <span class="tk">data</span> mt_acc_air  <span class="tk">type</span> tt_carr.      <span class="tc">" 이 LUW에서 접수된 carrid</span>
+    <span class="tk">data</span> mt_acc_conn <span class="tk">type</span> tt_conn.      <span class="tc">" 이 LUW에서 접수된 carrid+connid</span>
+
+    <span class="tc">"--- 항공사 검증: 규칙 하나 = 메서드 하나 ---</span>
+    <span class="tk">methods</span> validate_airline
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_airline
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_air_required
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_airline
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_air_code
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_airline
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_air_currency
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_airline
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_air_duplicate
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_airline
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_air_exists
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_airline
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+
+    <span class="tc">"--- 항공편 검증 ---</span>
+    <span class="tk">methods</span> validate_schedule
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_schedule
+                it_air_ng     <span class="tk">type</span> tt_carr
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_sch_required
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_schedule
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_sch_unit
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_schedule
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_sch_country
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_schedule
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_sch_duplicate
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_schedule
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_sch_exists
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_schedule
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+    <span class="tk">methods</span> chk_sch_parent
+      <span class="tk">importing</span> it_rows       <span class="tk">type</span> tt_schedule
+                it_air_ng     <span class="tk">type</span> tt_carr
+      <span class="tk">returning</span> <span class="tk">value</span>(rt_err) <span class="tk">type</span> tt_err.
+
+    <span class="tk">methods</span> row_message
+      <span class="tk">importing</span> iv_seq        <span class="tk">type</span> i
+                it_err        <span class="tk">type</span> tt_err
+      <span class="tk">returning</span> <span class="tk">value</span>(rv_msg) <span class="tk">type</span> bapi_msg.
+    <span class="tk">methods</span> save_main.
+    <span class="tk">methods</span> save_log.
+
+<span class="tk">endclass</span>.
+
+
+
+<span class="tk">class</span> zcl_2609_airsched_partial <span class="tk">implementation</span>.
+
+
+  <span class="tk">method</span> recv_data.
+
+    <span class="tk">data</span> lv_req <span class="tk">type</span> sysuuid_x16.
+    <span class="tk">try</span>.
+        lv_req = cl_system_uuid=&gt;create_uuid_x16_static( ).
+      <span class="tk">catch</span> cx_uuid_error.
+        <span class="tk">clear</span> lv_req.
+    <span class="tk">endtry</span>.
+
+    <span class="tc">" 로그 공통부 (헤더 = 송장 정보)</span>
+    <span class="tk">data</span>(ls_base) = <span class="tk">value</span> ty_log( request_id  = lv_req
+                                  tracking_no = is_header-iv_tracking_no
+                                  recv_date   = is_header-iv_date
+                                  recv_time   = is_header-iv_time ).
+
+    <span class="tc">"── ① 빈 요청 ──────────────────────────────────────────────────</span>
+    <span class="tk">if</span> it_data <span class="tk">is</span> <span class="tk">initial</span> <span class="tk">and</span> it_items <span class="tk">is</span> <span class="tk">initial</span>.
+      <span class="tk">append</span> <span class="tk">value</span> #( <span class="tk">base</span> ls_base seq = <span class="tn">1</span> mtype = <span class="ts">'E'</span>
+                      message = <span class="ts">'No Imported Data'</span> ) <span class="tk">to</span> mt_log.
+      rt_return = <span class="tk">value</span> #( ( mtype = <span class="ts">'E'</span> message = <span class="ts">'No Imported Data'</span> ) ).
+      <span class="tk">return</span>.
+    <span class="tk">endif</span>.
+
+    <span class="tc">"── ② 항공사: 검증 → 통과행만 버퍼 ──────────────────────────────</span>
+    <span class="tk">data</span>(lt_air)     = <span class="tk">corresponding</span> tt_airline( it_data ).
+    <span class="tk">data</span>(lt_air_err) = validate_airline( lt_air ).
+    <span class="tk">data</span> lt_air_ng   <span class="tk">type</span> tt_carr.            <span class="tc">" 이번 요청에서 실패한 carrid</span>
+
+    <span class="tk">loop</span> <span class="tk">at</span> lt_air <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_air&gt;).
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> <span class="tk">line_exists</span>( lt_air_err[ seq = lv_seq ] ).
+        <span class="tk">insert</span> &lt;ls_air&gt;-carrid <span class="tk">into</span> <span class="tk">table</span> lt_air_ng.
+        <span class="tk">continue</span>.                                   <span class="tc">" 에러행 skip</span>
+      <span class="tk">endif</span>.
+      <span class="tk">append</span> &lt;ls_air&gt; <span class="tk">to</span> mt_airline.
+      <span class="tk">insert</span> &lt;ls_air&gt;-carrid <span class="tk">into</span> <span class="tk">table</span> mt_acc_air.
+    <span class="tk">endloop</span>.
+
+    <span class="tc">"── ③ 항공편: 검증(부모 판정 포함) → 통과행만 버퍼 ──────────────</span>
+    <span class="tk">data</span>(lt_sch)     = <span class="tk">corresponding</span> tt_schedule( it_items ).
+    <span class="tk">data</span>(lt_sch_err) = validate_schedule( it_rows   = lt_sch
+                                          it_air_ng = lt_air_ng ).
+
+    <span class="tk">loop</span> <span class="tk">at</span> lt_sch <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_sch&gt;).
+      lv_seq = sy-tabix.
+      <span class="tk">if</span> <span class="tk">line_exists</span>( lt_sch_err[ seq = lv_seq ] ).
+        <span class="tk">continue</span>.
+      <span class="tk">endif</span>.
+      <span class="tk">append</span> &lt;ls_sch&gt; <span class="tk">to</span> mt_schedule.
+      <span class="tk">insert</span> <span class="tk">value</span> #( carrid = &lt;ls_sch&gt;-carrid connid = &lt;ls_sch&gt;-connid ) <span class="tk">into</span> <span class="tk">table</span> mt_acc_conn.
+    <span class="tk">endloop</span>.
+
+    <span class="tc">"── ④ 로그: 행마다 최종 결과 기록 ───────────────────────────────</span>
+    <span class="tk">data</span>(lv_log_from) = <span class="tk">lines</span>( mt_log ) + <span class="tn">1</span>.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_data <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_d&gt;).
+      lv_seq = sy-tabix.
+      <span class="tk">append</span> <span class="tk">value</span> #( <span class="tk">base</span> ls_base
+                      obj     = gc_obj_air
+                      seq     = lv_seq
+                      carrid  = &lt;ls_d&gt;-carrid
+                      mtype   = <span class="tk">cond</span> #( <span class="tk">when</span> <span class="tk">line_exists</span>( lt_air_err[ seq = lv_seq ] ) <span class="tk">then</span> <span class="ts">'E'</span> <span class="tk">else</span> <span class="ts">'S'</span> )
+                      message = row_message( iv_seq = lv_seq it_err = lt_air_err ) ) <span class="tk">to</span> mt_log.
+    <span class="tk">endloop</span>.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_items <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_i&gt;).
+      lv_seq = sy-tabix.
+      <span class="tk">append</span> <span class="tk">value</span> #( <span class="tk">base</span> ls_base
+                      obj     = gc_obj_sch
+                      seq     = lv_seq
+                      carrid  = &lt;ls_i&gt;-carrid
+                      connid  = &lt;ls_i&gt;-connid
+                      mtype   = <span class="tk">cond</span> #( <span class="tk">when</span> <span class="tk">line_exists</span>( lt_sch_err[ seq = lv_seq ] ) <span class="tk">then</span> <span class="ts">'E'</span> <span class="tk">else</span> <span class="ts">'S'</span> )
+                      message = row_message( iv_seq = lv_seq it_err = lt_sch_err ) ) <span class="tk">to</span> mt_log.
+    <span class="tk">endloop</span>.
+
+    <span class="tc">"── ⑤ 리턴: 행별 결과 전부 ─────────────────────────────────────</span>
+    <span class="tk">data</span> lv_air_ng <span class="tk">type</span> i.
+    <span class="tk">data</span> lv_sch_ng <span class="tk">type</span> i.
+
+    <span class="tk">loop</span> <span class="tk">at</span> mt_log <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_log&gt;) <span class="tk">from</span> lv_log_from.
+      <span class="tk">append</span> <span class="tk">value</span> #( carrid  = &lt;ls_log&gt;-carrid
+                      mtype   = &lt;ls_log&gt;-mtype
+                      message = <span class="tk">cond</span> #( <span class="tk">when</span> &lt;ls_log&gt;-obj = gc_obj_air
+                                        <span class="tk">then</span> <span class="ts">|항공사 { &lt;ls_log&gt;-seq }행: { &lt;ls_log&gt;-message }|</span>
+                                        <span class="tk">else</span> <span class="ts">|항공편 { &lt;ls_log&gt;-seq }행 { &lt;ls_log&gt;-connid }: { &lt;ls_log&gt;-message }|</span> ) )
+             <span class="tk">to</span> rt_return.
+      <span class="tk">if</span> &lt;ls_log&gt;-mtype = <span class="ts">'E'</span>.
+        <span class="tk">if</span> &lt;ls_log&gt;-obj = gc_obj_air.
+          lv_air_ng += <span class="tn">1</span>.
+        <span class="tk">else</span>.
+          lv_sch_ng += <span class="tn">1</span>.
+        <span class="tk">endif</span>.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+
+    <span class="tc">"── ⑥ 맨 앞에 요약 1줄 ─────────────────────────────────────────</span>
+    <span class="tk">data</span>(lv_air_tot) = <span class="tk">lines</span>( it_data ).
+    <span class="tk">data</span>(lv_sch_tot) = <span class="tk">lines</span>( it_items ).
+    <span class="tk">data</span>(lv_ng)      = lv_air_ng + lv_sch_ng.
+    <span class="tk">data</span>(lv_tot)     = lv_air_tot + lv_sch_tot.
+
+    <span class="tk">insert</span> <span class="tk">value</span> #( mtype   = <span class="tk">cond</span> #( <span class="tk">when</span> lv_ng = <span class="tn">0</span>      <span class="tk">then</span> <span class="ts">'S'</span>
+                                      <span class="tk">when</span> lv_ng = lv_tot <span class="tk">then</span> <span class="ts">'E'</span>
+                                      <span class="tk">else</span> <span class="ts">'W'</span> )
+                    message = <span class="ts">|항공사 { lv_air_tot }건(성공 { lv_air_tot - lv_air_ng } / 실패 { lv_air_ng }), |</span> &amp;&amp;
+                              <span class="ts">|항공편 { lv_sch_tot }건(성공 { lv_sch_tot - lv_sch_ng } / 실패 { lv_sch_ng })|</span> )
+           <span class="tk">into</span> rt_return <span class="tk">index</span> <span class="tn">1</span>.
+
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tc">"==============================================================</span>
+  <span class="tc">" 항공사 검증</span>
+  <span class="tc">"==============================================================</span>
+  <span class="tk">method</span> validate_airline.
+    <span class="tc">" 규칙 하나 = 메서드 하나. 새 규칙은 여기 한 줄만 추가</span>
+    rt_err = <span class="tk">value</span> #( ( <span class="tk">lines</span> <span class="tk">of</span> chk_air_required( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_air_code( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_air_currency( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_air_duplicate( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_air_exists( it_rows ) ) ).
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_air_required.
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;).
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> &lt;ls_row&gt;-carrid <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|항공사 코드(CARRID)는 필수입니다|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> &lt;ls_row&gt;-carrname <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|항공사명 누락|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> &lt;ls_row&gt;-currcode <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|통화키 누락|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> &lt;ls_row&gt;-url <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|홈페이지 주소 누락|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_air_code.
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;).
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> &lt;ls_row&gt;-carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span> <span class="tk">and</span> strlen( &lt;ls_row&gt;-carrid ) &lt;&gt; <span class="tn">2</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|항공사 코드는 2자리여야 합니다: { &lt;ls_row&gt;-carrid }|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_air_currency.
+    <span class="tc">" ① 통화코드 종류만 추려서</span>
+    <span class="tk">data</span> lt_curr <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> s_currcode <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;) <span class="tk">where</span> currcode <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">insert</span> &lt;ls_row&gt;-currcode <span class="tk">into</span> <span class="tk">table</span> lt_curr.
+    <span class="tk">endloop</span>.
+    <span class="tk">if</span> lt_curr <span class="tk">is</span> <span class="tk">initial</span>.
+      <span class="tk">return</span>.
+    <span class="tk">endif</span>.
+
+    <span class="tc">" ② 1회 조회</span>
+    <span class="tk">data</span> lt_valid <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> s_currcode <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">select</span> currency <span class="tk">from</span> i_currency
+      <span class="tk">for</span> <span class="tk">all</span> <span class="tk">entries</span> <span class="tk">in</span> @lt_curr
+      <span class="tk">where</span> currency = @lt_curr-table_line
+      <span class="tk">into</span> <span class="tk">table</span> @lt_valid.
+
+    <span class="tc">" ③ 판정</span>
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> &lt;ls_row&gt; <span class="tk">where</span> currcode <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> <span class="tk">not</span> <span class="tk">line_exists</span>( lt_valid[ table_line = &lt;ls_row&gt;-currcode ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|존재하지 않는 통화: { &lt;ls_row&gt;-currcode }|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_air_duplicate.
+    <span class="tc">" 요청 안 중복 → 어느 게 진짜인지 모르니 둘 다 에러</span>
+    <span class="tc">" 같은 LUW 앞선 호출에서 접수 → 먼저 온 쪽이 이김</span>
+    <span class="tk">types</span>: <span class="tk">begin</span> <span class="tk">of</span> ty_cnt,
+             carrid <span class="tk">type</span> s_carr_id,
+             cnt    <span class="tk">type</span> i,
+           <span class="tk">end</span> <span class="tk">of</span> ty_cnt.
+    <span class="tk">data</span> lt_cnt <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> ty_cnt <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> carrid.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;) <span class="tk">where</span> carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      collect <span class="tk">value</span> ty_cnt( carrid = &lt;ls_row&gt;-carrid cnt = <span class="tn">1</span> ) <span class="tk">into</span> lt_cnt.
+    <span class="tk">endloop</span>.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> &lt;ls_row&gt; <span class="tk">where</span> carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> lt_cnt[ carrid = &lt;ls_row&gt;-carrid ]-cnt &gt; <span class="tn">1</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|요청 내 중복 항공사|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">elseif</span> <span class="tk">line_exists</span>( mt_acc_air[ table_line = &lt;ls_row&gt;-carrid ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|같은 요청의 앞선 호출에서 이미 접수|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_air_exists.
+    <span class="tk">data</span> lt_carr <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> s_carr_id <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;) <span class="tk">where</span> carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">insert</span> &lt;ls_row&gt;-carrid <span class="tk">into</span> <span class="tk">table</span> lt_carr.
+    <span class="tk">endloop</span>.
+    <span class="tk">if</span> lt_carr <span class="tk">is</span> <span class="tk">initial</span>.
+      <span class="tk">return</span>.
+    <span class="tk">endif</span>.
+
+    <span class="tk">data</span> lt_db <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> s_carr_id <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">select</span> carrid <span class="tk">from</span> yhl2609t0030
+      <span class="tk">for</span> <span class="tk">all</span> <span class="tk">entries</span> <span class="tk">in</span> @lt_carr
+      <span class="tk">where</span> carrid = @lt_carr-table_line
+      <span class="tk">into</span> <span class="tk">table</span> @lt_db.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> &lt;ls_row&gt; <span class="tk">where</span> carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> <span class="tk">line_exists</span>( lt_db[ table_line = &lt;ls_row&gt;-carrid ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|이미 수신된 항공사입니다|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tc">"==============================================================</span>
+  <span class="tc">" 항공편 검증</span>
+  <span class="tc">"==============================================================</span>
+  <span class="tk">method</span> validate_schedule.
+    rt_err = <span class="tk">value</span> #( ( <span class="tk">lines</span> <span class="tk">of</span> chk_sch_required( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_sch_unit( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_sch_country( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_sch_duplicate( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_sch_exists( it_rows ) )
+                      ( <span class="tk">lines</span> <span class="tk">of</span> chk_sch_parent( it_rows = it_rows it_air_ng = it_air_ng ) ) ).
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_sch_required.
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;).
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> &lt;ls_row&gt;-carrid <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|항공사 코드(CARRID)는 필수입니다|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> &lt;ls_row&gt;-connid <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|항공편 번호(CONNID)는 필수입니다|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> &lt;ls_row&gt;-cityfrom <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|출발 도시 누락|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> &lt;ls_row&gt;-cityto <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|도착 도시 누락|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_sch_unit.
+    <span class="tc">" 수량-단위 짝: 거리가 있으면 단위도 있어야 함 (치킨 '3' 만 오면 마리인지 조각인지 모름)</span>
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;).
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> &lt;ls_row&gt;-distance <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span> <span class="tk">and</span> &lt;ls_row&gt;-distid <span class="tk">is</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|거리 단위(DISTID) 누락|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_sch_country.
+    <span class="tc">" 출발/도착 국가를 한 번에 모아서 1회 조회</span>
+    <span class="tk">data</span> lt_ctry <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> land1 <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;).
+      <span class="tk">if</span> &lt;ls_row&gt;-countryfr <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> &lt;ls_row&gt;-countryfr <span class="tk">into</span> <span class="tk">table</span> lt_ctry.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> &lt;ls_row&gt;-countryto <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+        <span class="tk">insert</span> &lt;ls_row&gt;-countryto <span class="tk">into</span> <span class="tk">table</span> lt_ctry.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+    <span class="tk">if</span> lt_ctry <span class="tk">is</span> <span class="tk">initial</span>.
+      <span class="tk">return</span>.
+    <span class="tk">endif</span>.
+
+    <span class="tk">data</span> lt_valid <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> land1 <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">select</span> country <span class="tk">from</span> i_country
+      <span class="tk">for</span> <span class="tk">all</span> <span class="tk">entries</span> <span class="tk">in</span> @lt_ctry
+      <span class="tk">where</span> country = @lt_ctry-table_line
+      <span class="tk">into</span> <span class="tk">table</span> @lt_valid.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> &lt;ls_row&gt;.
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> &lt;ls_row&gt;-countryfr <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span> <span class="tk">and</span> <span class="tk">not</span> <span class="tk">line_exists</span>( lt_valid[ table_line = &lt;ls_row&gt;-countryfr ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|존재하지 않는 출발 국가: { &lt;ls_row&gt;-countryfr }|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+      <span class="tk">if</span> &lt;ls_row&gt;-countryto <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span> <span class="tk">and</span> <span class="tk">not</span> <span class="tk">line_exists</span>( lt_valid[ table_line = &lt;ls_row&gt;-countryto ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|존재하지 않는 도착 국가: { &lt;ls_row&gt;-countryto }|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_sch_duplicate.
+    <span class="tk">types</span>: <span class="tk">begin</span> <span class="tk">of</span> ty_cnt,
+             carrid <span class="tk">type</span> s_carr_id,
+             connid <span class="tk">type</span> s_conn_id,
+             cnt    <span class="tk">type</span> i,
+           <span class="tk">end</span> <span class="tk">of</span> ty_cnt.
+    <span class="tk">data</span> lt_cnt <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> ty_cnt <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> carrid connid.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;) <span class="tk">where</span> connid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      collect <span class="tk">value</span> ty_cnt( carrid = &lt;ls_row&gt;-carrid connid = &lt;ls_row&gt;-connid cnt = <span class="tn">1</span> ) <span class="tk">into</span> lt_cnt.
+    <span class="tk">endloop</span>.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> &lt;ls_row&gt; <span class="tk">where</span> connid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> lt_cnt[ carrid = &lt;ls_row&gt;-carrid connid = &lt;ls_row&gt;-connid ]-cnt &gt; <span class="tn">1</span>.
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|요청 내 중복 항공편|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">elseif</span> <span class="tk">line_exists</span>( mt_acc_conn[ carrid = &lt;ls_row&gt;-carrid connid = &lt;ls_row&gt;-connid ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|같은 요청의 앞선 호출에서 이미 접수|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_sch_exists.
+    <span class="tk">data</span> lt_conn <span class="tk">type</span> tt_conn.
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;) <span class="tk">where</span> carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span> <span class="tk">and</span> connid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">insert</span> <span class="tk">value</span> #( carrid = &lt;ls_row&gt;-carrid connid = &lt;ls_row&gt;-connid ) <span class="tk">into</span> <span class="tk">table</span> lt_conn.
+    <span class="tk">endloop</span>.
+    <span class="tk">if</span> lt_conn <span class="tk">is</span> <span class="tk">initial</span>.
+      <span class="tk">return</span>.
+    <span class="tk">endif</span>.
+
+    <span class="tk">data</span> lt_db <span class="tk">type</span> tt_conn.
+    <span class="tk">select</span> carrid, connid <span class="tk">from</span> yhl2609t0031
+      <span class="tk">for</span> <span class="tk">all</span> <span class="tk">entries</span> <span class="tk">in</span> @lt_conn
+      <span class="tk">where</span> carrid = @lt_conn-carrid
+        <span class="tk">and</span> connid = @lt_conn-connid
+      <span class="tk">into</span> <span class="tk">table</span> @lt_db.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> &lt;ls_row&gt; <span class="tk">where</span> carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span> <span class="tk">and</span> connid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> <span class="tk">line_exists</span>( lt_db[ carrid = &lt;ls_row&gt;-carrid connid = &lt;ls_row&gt;-connid ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|이미 수신된 항공편입니다|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> chk_sch_parent.
+    <span class="tc">" 부모 판정 (형제 구조라 프레임워크가 안 해줌 → 직접)</span>
+    <span class="tc">"  ① 같은 요청의 항공사가 실패 → 자식도 실패</span>
+    <span class="tc">"  ② 이번 LUW 접수분에도 없고 DB 에도 없음 → 고아 항공편</span>
+    <span class="tk">data</span> lt_need <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> s_carr_id <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_row&gt;) <span class="tk">where</span> carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">if</span> <span class="tk">not</span> <span class="tk">line_exists</span>( it_air_ng[ table_line = &lt;ls_row&gt;-carrid ] )
+     <span class="tk">and</span> <span class="tk">not</span> <span class="tk">line_exists</span>( mt_acc_air[ table_line = &lt;ls_row&gt;-carrid ] ).
+        <span class="tk">insert</span> &lt;ls_row&gt;-carrid <span class="tk">into</span> <span class="tk">table</span> lt_need.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+
+    <span class="tk">data</span> lt_db <span class="tk">type</span> <span class="tk">hashed</span> <span class="tk">table</span> <span class="tk">of</span> s_carr_id <span class="tk">with</span> <span class="tk">unique</span> <span class="tk">key</span> table_line.
+    <span class="tk">if</span> lt_need <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">select</span> carrid <span class="tk">from</span> yhl2609t0030
+        <span class="tk">for</span> <span class="tk">all</span> <span class="tk">entries</span> <span class="tk">in</span> @lt_need
+        <span class="tk">where</span> carrid = @lt_need-table_line
+        <span class="tk">into</span> <span class="tk">table</span> @lt_db.
+    <span class="tk">endif</span>.
+
+    <span class="tk">loop</span> <span class="tk">at</span> it_rows <span class="tk">assigning</span> &lt;ls_row&gt; <span class="tk">where</span> carrid <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">data</span>(lv_seq) = sy-tabix.
+      <span class="tk">if</span> <span class="tk">line_exists</span>( it_air_ng[ table_line = &lt;ls_row&gt;-carrid ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|같이 보낸 항공사 { &lt;ls_row&gt;-carrid } 수신 실패로 접수 불가|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">elseif</span> <span class="tk">not</span> <span class="tk">line_exists</span>( mt_acc_air[ table_line = &lt;ls_row&gt;-carrid ] )
+         <span class="tk">and</span> <span class="tk">not</span> <span class="tk">line_exists</span>( lt_db[ table_line = &lt;ls_row&gt;-carrid ] ).
+        <span class="tk">insert</span> <span class="tk">value</span> #( seq = lv_seq text = <span class="ts">|상위 항공사 { &lt;ls_row&gt;-carrid } 가 없습니다|</span> ) <span class="tk">into</span> <span class="tk">table</span> rt_err.
+      <span class="tk">endif</span>.
+    <span class="tk">endloop</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tc">"==============================================================</span>
+  <span class="tc">" 공통</span>
+  <span class="tc">"==============================================================</span>
+  <span class="tk">method</span> row_message.
+    <span class="tc">" 에러가 있으면 전부 ' / '로 연결 (220자 넘으면 자동 절단), 없으면 '접수 완료'</span>
+    <span class="tk">loop</span> <span class="tk">at</span> it_err <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_err&gt;) <span class="tk">where</span> seq = iv_seq.
+      rv_msg = <span class="tk">cond</span> #( <span class="tk">when</span> rv_msg <span class="tk">is</span> <span class="tk">initial</span> <span class="tk">then</span> &lt;ls_err&gt;-text
+                       <span class="tk">else</span> <span class="ts">|{ rv_msg } / { &lt;ls_err&gt;-text }|</span> ).
+    <span class="tk">endloop</span>.
+    <span class="tk">if</span> rv_msg <span class="tk">is</span> <span class="tk">initial</span>.
+      rv_msg = gc_ok_msg.
+    <span class="tk">endif</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> save.
+    save_main( ).    <span class="tc">" 버퍼가 비어 있으면 내부에서 건너뜀</span>
+    save_log( ).     <span class="tc">" 로그: 본 데이터 유무와 상관없이 항상</span>
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> save_main.
+    <span class="tk">if</span> mt_airline <span class="tk">is</span> <span class="tk">initial</span> <span class="tk">and</span> mt_schedule <span class="tk">is</span> <span class="tk">initial</span>.
+      <span class="tk">return</span>.
+    <span class="tk">endif</span>.
+
+    <span class="tk">data</span> lv_now <span class="tk">type</span> timestampl.
+    <span class="tk">get</span> <span class="tk">time</span> <span class="tk">stamp</span> <span class="tk">field</span> lv_now.
+    <span class="tk">data</span>(lv_user) = cl_abap_context_info=&gt;get_user_technical_name( ).
+
+    <span class="tk">loop</span> <span class="tk">at</span> mt_airline <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_air&gt;).
+      &lt;ls_air&gt;-created_by      = lv_user.
+      &lt;ls_air&gt;-created_at      = lv_now.
+      &lt;ls_air&gt;-last_changed_by = lv_user.
+      &lt;ls_air&gt;-last_changed_at = lv_now.
+    <span class="tk">endloop</span>.
+
+    <span class="tk">loop</span> <span class="tk">at</span> mt_schedule <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_sch&gt;).
+      &lt;ls_sch&gt;-created_by      = lv_user.
+      &lt;ls_sch&gt;-created_at      = lv_now.
+      &lt;ls_sch&gt;-last_changed_by = lv_user.
+      &lt;ls_sch&gt;-last_changed_at = lv_now.
+    <span class="tk">endloop</span>.
+
+    <span class="tc">" 부모 → 자식 순. 전부 신규. COMMIT WORK 금지!</span>
+    <span class="tk">if</span> mt_airline <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">insert</span> yhl2609t0030 <span class="tk">from</span> <span class="tk">table</span> @mt_airline.
+    <span class="tk">endif</span>.
+    <span class="tk">if</span> mt_schedule <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+      <span class="tk">insert</span> yhl2609t0031 <span class="tk">from</span> <span class="tk">table</span> @mt_schedule.
+    <span class="tk">endif</span>.
+  <span class="tk">endmethod</span>.
+
+
+  <span class="tk">method</span> save_log.
+    <span class="tk">check</span> mt_log <span class="tk">is</span> <span class="tk">not</span> <span class="tk">initial</span>.
+
+    <span class="tc">" TODO: 로그 테이블 생성 후 구현</span>
+    <span class="tc">"   - mt_log 타입을 로그 테이블 타입으로 교체 (obj/seq/carrid/connid 포함)</span>
+    <span class="tc">"   - 관리 필드(created_by/created_at) 세팅</span>
+    <span class="tc">"   - insert &lt;로그테이블&gt; from table @mt_log.   (반드시 테이블로 한 방에)</span>
+  <span class="tk">endmethod</span>.
+
+<span class="tk">endclass</span>.</code></pre>
+</figure>
+</section>
+<section id="bp" class="step"><span class="badge" aria-hidden="true">7</span><h2>BP 클래스</h2><ul class="pts"><li><code>lcl_buffer</code>가 로직 클래스 인스턴스를 들고 있다가, <code>save</code>에서 한 번에 저장하고 <code>cleanup</code>에서 인스턴스째 버린다.</li><li><code>ImportData</code> 핸들러는 얇게 <code>recv_data</code>에 위임한다. 건별 판정과 리턴 메시지는 action 안에서 확정하고, <code>save</code>는 확정된 데이터를 쓰기만 한다.</li><li><code>read</code>, <code>rba_Parent</code>는 빈 껍데기라 조회는 되지 않는 쓰기 전용 API.</li></ul>
+<figure class="code long">
+<figcaption><span class="fname">zbp_r_yhl2609_0030.clas.locals_imp.abap</span><span class="cnote">Local Types</span><button type="button" class="copy" aria-label="zbp_r_yhl2609_0030.clas.locals_imp.abap 복사">복사</button></figcaption>
+<pre><code>
+<span class="tc">"==============================================================</span>
+<span class="tc">" 버퍼 홀더: 로직 클래스 인스턴스를 BP가 소유</span>
+<span class="tc">"==============================================================</span>
+<span class="tk">class</span> lcl_buffer <span class="tk">definition</span> <span class="tk">final</span>.
+  <span class="tk">public</span> <span class="tk">section</span>.
+    <span class="tk">class-methods</span> <span class="tk">get</span>   <span class="tk">returning</span> <span class="tk">value</span>(ro_logic) <span class="tk">type</span> ref <span class="tk">to</span> zcl_2609_airsched_partial.
+    <span class="tk">class-methods</span> <span class="tk">clear</span>.
+  <span class="tk">private</span> <span class="tk">section</span>.
+    <span class="tk">class-data</span> go_logic <span class="tk">type</span> ref <span class="tk">to</span> zcl_2609_airsched_partial.
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lcl_buffer <span class="tk">implementation</span>.
+  <span class="tk">method</span> <span class="tk">get</span>.
+    go_logic = <span class="tk">cond</span> #( <span class="tk">when</span> go_logic <span class="tk">is</span> <span class="tk">bound</span> <span class="tk">then</span> go_logic
+                       <span class="tk">else</span> <span class="tk">new</span> #( ) ).
+    ro_logic = go_logic.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> <span class="tk">clear</span>.
+    <span class="tk">clear</span> go_logic.     <span class="tc">" 인스턴스째 버림 → mt_buffer, mt_log도 같이 사라짐</span>
+  <span class="tk">endmethod</span>.
+<span class="tk">endclass</span>.
+
+
+<span class="tk">class</span> lhc_Airline <span class="tk">definition</span> <span class="tk">inheriting</span> <span class="tk">from</span> cl_abap_behavior_handler.
+  <span class="tk">private</span> <span class="tk">section</span>.
+
+    <span class="tk">methods</span> get_global_authorizations <span class="tk">for</span> <span class="tk">global</span> <span class="tk">authorization</span>
+      <span class="tk">importing</span> <span class="tk">request</span> requested_authorizations <span class="tk">for</span> Airline <span class="tk">result</span> <span class="tk">result</span>.
+
+    <span class="tk">methods</span> <span class="tk">read</span> <span class="tk">for</span> <span class="tk">read</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">read</span> Airline <span class="tk">result</span> <span class="tk">result</span>.
+
+    <span class="tk">methods</span> <span class="tk">lock</span> <span class="tk">for</span> <span class="tk">lock</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">lock</span> Airline.
+
+    <span class="tk">methods</span> ImportData <span class="tk">for</span> <span class="tk">modify</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">action</span> Airline~ImportData <span class="tk">result</span> <span class="tk">result</span>.
+
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lhc_Airline <span class="tk">implementation</span>.
+
+  <span class="tk">method</span> get_global_authorizations.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> <span class="tk">read</span>.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> <span class="tk">lock</span>.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> ImportData.
+
+    <span class="tk">data</span>(lo_logic) = lcl_buffer=&gt;<span class="tk">get</span>( ).
+
+    <span class="tk">loop</span> <span class="tk">at</span> keys <span class="tk">assigning</span> <span class="tk">field-symbol</span>(&lt;ls_key&gt;).
+      <span class="tk">data</span>(lt_return) = lo_logic-&gt;recv_data(
+        is_header = <span class="tk">corresponding</span> #( &lt;ls_key&gt;-%param-header )
+        it_data   = <span class="tk">corresponding</span> #( &lt;ls_key&gt;-%param-data )
+        it_items  = <span class="tk">corresponding</span> #( &lt;ls_key&gt;-%param-items ) ).
+
+      <span class="tk">append</span> <span class="tk">value</span> #( %cid   = &lt;ls_key&gt;-%cid
+                      %param = <span class="tk">value</span> #( <span class="tk">return</span> = <span class="tk">corresponding</span> #( lt_return ) ) ) <span class="tk">to</span> <span class="tk">result</span>.
+    <span class="tk">endloop</span>.
+
+  <span class="tk">endmethod</span>.
+
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lhc_Schedule <span class="tk">definition</span> <span class="tk">inheriting</span> <span class="tk">from</span> cl_abap_behavior_handler.
+  <span class="tk">private</span> <span class="tk">section</span>.
+
+    <span class="tk">methods</span> <span class="tk">read</span> <span class="tk">for</span> <span class="tk">read</span>
+      <span class="tk">importing</span> keys <span class="tk">for</span> <span class="tk">read</span> Schedule <span class="tk">result</span> <span class="tk">result</span>.
+
+    <span class="tk">methods</span> rba_Parent <span class="tk">for</span> <span class="tk">read</span>
+      <span class="tk">importing</span> keys_rba <span class="tk">for</span> <span class="tk">read</span> Schedule\_Parent full result_requested <span class="tk">result</span> <span class="tk">result</span> link association_links.
+
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lhc_Schedule <span class="tk">implementation</span>.
+
+  <span class="tk">method</span> <span class="tk">read</span>.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> rba_Parent.
+  <span class="tk">endmethod</span>.
+
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lsc_ZR_YHL2609_0030 <span class="tk">definition</span> <span class="tk">inheriting</span> <span class="tk">from</span> cl_abap_behavior_saver.
+  <span class="tk">protected</span> <span class="tk">section</span>.
+
+    <span class="tk">methods</span> finalize <span class="tk">redefinition</span>.
+
+    <span class="tk">methods</span> check_before_save <span class="tk">redefinition</span>.
+
+    <span class="tk">methods</span> save <span class="tk">redefinition</span>.
+
+    <span class="tk">methods</span> cleanup <span class="tk">redefinition</span>.
+
+    <span class="tk">methods</span> cleanup_finalize <span class="tk">redefinition</span>.
+
+<span class="tk">endclass</span>.
+
+<span class="tk">class</span> lsc_ZR_YHL2609_0030 <span class="tk">implementation</span>.
+
+  <span class="tk">method</span> finalize.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> check_before_save.
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> save.
+
+    <span class="tc">" 본 데이터 + 로그 저장 (COMMIT WORK 금지!)</span>
+    lcl_buffer=&gt;<span class="tk">get</span>( )-&gt;save( ).
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> cleanup.
+    <span class="tc">" 인스턴스를 버리는 게 곧 버퍼 정리</span>
+    lcl_buffer=&gt;<span class="tk">clear</span>( ).
+
+  <span class="tk">endmethod</span>.
+
+  <span class="tk">method</span> cleanup_finalize.
+  <span class="tk">endmethod</span>.
+
+<span class="tk">endclass</span>.</code></pre>
+</figure>
+</section>
+<section id="test" class="step"><span class="badge" aria-hidden="true">8</span><h2>호출 테스트</h2><ul class="pts"><li>CSRF 토큰을 GET으로 먼저 받은 뒤 POST. body 키는 <code>$metadata</code>의 이름과 대소문자까지 같아야 한다.</li><li>날짜는 <code>2026-11-02</code>, 시간은 <code>22:50:00</code> 형식, <code>connid</code>는 4자리 문자열(<code>0001</code>)로 보낸다.</li><li>payload는 성공 3건과 에러 케이스를 섞어서 검증 규칙이 하나씩 울리도록 만들었다.</li></ul>
+<h4>1. 요청</h4>
+<figure class="code">
+<figcaption><span class="fname">요청</span><button type="button" class="copy" aria-label="요청 복사">복사</button></figcaption>
+<pre><code><span class="tk">POST</span> /sap/opu/odata4/.../0001/&lt;엔티티셋&gt;/com.sap.gateway.srvd_a2x.zsrv_yhl2609_0030.v0001.ImportData
+<span class="tkey">X-CSRF-Token</span>: &lt;토큰&gt;
+<span class="tkey">Content-Type</span>: application/json</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">Body</span><span class="cnote">HEADER 1 + DATA 7 + ITEMS 10</span><button type="button" class="copy" aria-label="Body 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"HEADER"</span>: {
+    <span class="tkey">"IV_DATE"</span>: <span class="ts">"2026-11-02"</span>,
+    <span class="tkey">"IV_TIME"</span>: <span class="ts">"22:50:00"</span>,
+    <span class="tkey">"IV_tracking_no"</span>: <span class="ts">"TRK-20261102-0001"</span>
+  },
+  <span class="tkey">"DATA"</span>: [
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,
+      <span class="tkey">"carrname"</span>: <span class="ts">"Zephyr Air"</span>,
+      <span class="tkey">"currcode"</span>: <span class="ts">"KRW"</span>,
+      <span class="tkey">"url"</span>: <span class="ts">"https://www.zephyrair.test"</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,
+      <span class="tkey">"carrname"</span>: <span class="ts">"Nimbus Airlines"</span>,
+      <span class="tkey">"currcode"</span>: <span class="ts">"USD"</span>,
+      <span class="tkey">"url"</span>: <span class="ts">"https://www.nimbus.test"</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z3"</span>,
+      <span class="tkey">"carrname"</span>: <span class="ts">"Cirrus Jet"</span>,
+      <span class="tkey">"currcode"</span>: <span class="ts">"JPY"</span>,
+      <span class="tkey">"url"</span>: <span class="ts">""</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z4"</span>,
+      <span class="tkey">"carrname"</span>: <span class="ts">"Stratus Wings"</span>,
+      <span class="tkey">"currcode"</span>: <span class="ts">"CNY"</span>,
+      <span class="tkey">"url"</span>: <span class="ts">"https://www.stratus.test"</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z5"</span>,
+      <span class="tkey">"carrname"</span>: <span class="ts">"Twin Air A"</span>,
+      <span class="tkey">"currcode"</span>: <span class="ts">"EUR"</span>,
+      <span class="tkey">"url"</span>: <span class="ts">"https://www.twin-a.test"</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z5"</span>,
+      <span class="tkey">"carrname"</span>: <span class="ts">"Twin Air B"</span>,
+      <span class="tkey">"currcode"</span>: <span class="ts">"EUR"</span>,
+      <span class="tkey">"url"</span>: <span class="ts">"https://www.twin-b.test"</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"ZZZ"</span>,
+      <span class="tkey">"carrname"</span>: <span class="ts">"Triple Zed"</span>,
+      <span class="tkey">"currcode"</span>: <span class="ts">"KRW"</span>,
+      <span class="tkey">"url"</span>: <span class="ts">"https://www.zzz.test"</span>
+    }
+  ],
+  <span class="tkey">"ITEMS"</span>: [
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0001"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"ICN"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"JP"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"TOKYO"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"NRT"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">140</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"09:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"11:20:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">1260</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"KM"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">0</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0002"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"JP"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"TOKYO"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"NRT"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"ICN"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">155</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"13:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"15:35:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">1260</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"KM"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">0</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0100"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"ICN"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"US"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"NEW YORK"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"JFK"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">840</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"10:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"10:00:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">6900</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"MI"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">0</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z3"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0010"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"JP"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"TOKYO"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"HND"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"GMP"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">135</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"08:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"10:15:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">1160</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"KM"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">0</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Q9"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0001"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"BUSAN"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"PUS"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"JP"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"OSAKA"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"KIX"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">90</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"07:30:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"09:00:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">600</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"KM"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">0</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0003"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"GMP"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"JP"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"OSAKA"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"KIX"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">105</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"16:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"17:45:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">870</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">""</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">0</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0200"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"US"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"NEW YORK"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"JFK"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"XX"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"NOWHERE"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"NWH"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">300</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"18:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"23:00:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">2000</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"MI"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">0</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0101"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"US"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"NEW YORK"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"JFK"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"ICN"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">900</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"12:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"16:00:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">6900</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"MI"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">1</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0101"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"US"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"NEW YORK"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"JFK"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"ICN"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">900</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"13:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"17:00:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">6900</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"MI"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">1</span>
+    },
+    {
+      <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,
+      <span class="tkey">"connid"</span>: <span class="ts">"0004"</span>,
+      <span class="tkey">"countryfr"</span>: <span class="ts">"KR"</span>,
+      <span class="tkey">"cityfrom"</span>: <span class="ts">"SEOUL"</span>,
+      <span class="tkey">"airpfrom"</span>: <span class="ts">"ICN"</span>,
+      <span class="tkey">"countryto"</span>: <span class="ts">"JP"</span>,
+      <span class="tkey">"cityto"</span>: <span class="ts">""</span>,
+      <span class="tkey">"airpto"</span>: <span class="ts">"FUK"</span>,
+      <span class="tkey">"fltime"</span>: <span class="tn">85</span>,
+      <span class="tkey">"deptime"</span>: <span class="ts">"19:00:00"</span>,
+      <span class="tkey">"arrtime"</span>: <span class="ts">"20:25:00"</span>,
+      <span class="tkey">"distance"</span>: <span class="tn">540</span>,
+      <span class="tkey">"distid"</span>: <span class="ts">"KM"</span>,
+      <span class="tkey">"fltype"</span>: <span class="ts">""</span>,
+      <span class="tkey">"period"</span>: <span class="tn">0</span>
+    }
+  ]
+}</code></pre>
+</figure>
+<h4>2. 응답</h4>
+<figure class="code">
+<figcaption><span class="fname">응답</span><span class="cnote">HTTP 200, 요약 1줄(W) + 행별 결과 17줄</span><button type="button" class="copy" aria-label="응답 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"@odata.context"</span>: <span class="ts">"../$metadata#Collection(com.sap.gateway.srvd_a2x.zsrv_yhl2609_0030.v0001.za_yhl2609_0035)"</span>,
+  <span class="tkey">"@odata.metadataEtag"</span>: <span class="ts">"W/\"20261102134850\""</span>,
+  <span class="tkey">"value"</span>: [
+    {
+      <span class="tkey">"RETURN"</span>: [
+        { <span class="tkey">"carrid"</span>: <span class="ts">""</span>,    <span class="tkey">"mtype"</span>: <span class="ts">"W"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공사 7건(성공 3 / 실패 4), 항공편 10건(성공 3 / 실패 7)"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"S"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공사 1행: 접수 완료"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"S"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공사 2행: 접수 완료"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z3"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공사 3행: 홈페이지 주소 누락"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z4"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"S"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공사 4행: 접수 완료"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z5"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공사 5행: 요청 내 중복 항공사"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z5"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공사 6행: 요청 내 중복 항공사"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"ZZZ"</span>, <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공사 7행: 항공사 코드는 2자리여야 합니다: ZZZ"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"S"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 1행 0001: 접수 완료"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"S"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 2행 0002: 접수 완료"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"S"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 3행 0100: 접수 완료"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z3"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 4행 0010: 같이 보낸 항공사 Z3 수신 실패로 접수 불가"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Q9"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 5행 0001: 상위 항공사 Q9 가 없습니다"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 6행 0003: 거리 단위(DISTID) 누락"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 7행 0200: 존재하지 않는 도착 국가: XX"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 8행 0101: 요청 내 중복 항공편"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z2"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 9행 0101: 요청 내 중복 항공편"</span> },
+        { <span class="tkey">"carrid"</span>: <span class="ts">"Z1"</span>,  <span class="tkey">"mtype"</span>: <span class="ts">"E"</span>, <span class="tkey">"message"</span>: <span class="ts">"항공편 10행 0004: 도착 도시 누락"</span> }
+      ]
+    }
+  ]
+}</code></pre>
+</figure>
+<h4>3. 기대 결과</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>구분</th><th>행</th><th>키</th><th>노린 검증</th><th>결과</th></tr></thead><tbody><tr><td>항공사</td><td>1, 2, 4</td><td>Z1, Z2, Z4</td><td>정상</td><td>S</td></tr><tr><td>항공사</td><td>3</td><td>Z3</td><td>필수값 (url 누락)</td><td>E</td></tr><tr><td>항공사</td><td>5, 6</td><td>Z5</td><td>요청 내 중복</td><td>E</td></tr><tr><td>항공사</td><td>7</td><td>ZZZ</td><td>항공사 코드 2자리</td><td>E</td></tr><tr><td>항공편</td><td>1, 2, 3</td><td>Z1 0001, Z1 0002, Z2 0100</td><td>정상</td><td>S</td></tr><tr><td>항공편</td><td>4</td><td>Z3 0010</td><td>부모 항공사가 같은 요청에서 실패</td><td>E</td></tr><tr><td>항공편</td><td>5</td><td>Q9 0001</td><td>상위 항공사 없음 (고아)</td><td>E</td></tr><tr><td>항공편</td><td>6</td><td>Z1 0003</td><td>거리 단위 누락</td><td>E</td></tr><tr><td>항공편</td><td>7</td><td>Z2 0200</td><td>존재하지 않는 국가 XX</td><td>E</td></tr><tr><td>항공편</td><td>8, 9</td><td>Z2 0101</td><td>요청 내 중복</td><td>E</td></tr><tr><td>항공편</td><td>10</td><td>Z1 0004</td><td>필수값 (도착 도시 누락)</td><td>E</td></tr></tbody></table></div>
+</section>
+<section id="trouble" class="step"><span class="badge" aria-hidden="true">9</span><h2>막혔던 지점 정리</h2><div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody><tr><td>통화키 <code>XYZ</code>를 보내면 HTTP 400이 나고 나머지 행까지 전부 실패</td><td><code>currcode</code>가 통화키 타입이라 요청 역직렬화 단계에서 먼저 검증된다 (로직에 도달하기 전)</td><td>유효한 통화로 테스트한다. 값 오류를 행 단위로 받고 싶으면 AE 필드를 문자 타입으로 바꾼다. <code>distid</code>(단위)도 같은 성격</td></tr><tr><td>응답 JSON 키가 <code>messgae</code>로 나옴</td><td>리턴 AE 필드명 오타가 그대로 JSON 키로 노출된다</td><td>AE 필드를 <code>message</code>로 수정. 서비스 공개 전에 고쳐야 한다</td></tr><tr><td>항공사가 클라이언트당 1건만 저장됨</td><td>항공사 테이블에 <code>key carrid</code>가 빠져 키가 <code>mandt</code> 하나뿐</td><td><code>key carrid : s_carr_id not null</code> 추가</td></tr><tr><td>ITEMS에 있는 <code>carrid</code>의 항공사가 없어도 프레임워크가 아무 말도 안 함</td><td><code>DATA</code>와 <code>ITEMS</code>가 형제 composition이라 연결 고리가 <code>carrid</code> 값뿐</td><td><code>chk_sch_parent</code>에서 같은 요청 / 같은 LUW / DB 순으로 부모를 확인</td></tr><tr><td>BDEF에 <code>create</code>가 없는데 BP에 <code>cba_Schedule</code>이 남아 있음</td><td>BDEF에 선언이 없는 핸들러라 활성화 단계에서 에러가 난다</td><td>deep action만 쓴다면 BDEF의 <code>{ create; }</code>와 BP의 <code>cba_Schedule</code>을 둘 다 제거</td></tr><tr><td>항공편 메시지 <code>같이 보낸 항공사 Z3 수신 실패로 접수 불가</code></td><td>부모 항공사가 같은 요청에서 실패하면 자식도 함께 반려하는 정책 (의도된 동작)</td><td>항공사 에러를 고쳐서 항공사와 항공편을 함께 재전송</td></tr><tr><td>리턴 메시지만 봐서는 어느 항공편인지 알기 어려움</td><td>리턴 AE에 <code>connid</code> 필드가 없다</td><td>메시지 텍스트에 connid를 넣었다. 필요하면 AE에 필드를 추가</td></tr><tr><td>GET 조회가 빈 결과로 나옴</td><td><code>read</code> / <code>rba_*</code> 핸들러가 빈 껍데기</td><td>쓰기 전용 API라 의도된 상태. 조회가 필요해지면 그때 구현</td></tr></tbody></table></div>
+</section>
+</main>
+</div>
+<footer>서비스: zsrv_yhl2609_0030 (v0001) · 테이블: yhl2609t0030, yhl2609t0031 · 2026-11-02</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
