@@ -1,0 +1,293 @@
+---
+layout: post
+categories: [RAP]
+tags: [RAP]
+title: "나의 바이브코딩-작업-절차"
+description: "바이브 코딩, 어디까지 맡기고 어디부터 직접 할까? 작업 난이도를 L0~L3로 나눠 시작 절차와 안전 장치를 정리했습니다."
+date: 2026-11-15 00:18:22 +0900
+---
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>바이브 코딩 작업 시작 절차와 난이도 레벨 (SAP RAP / ABAP)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>바이브 코딩 작업 시작 절차와 난이도 레벨</h1>
+<p>다음 프로그램, 테이블, CDS view를 만들 때 무엇부터 시작하고 어디까지 Claude Code에 맡길지 정리했다. 형이 설계하고 검수하고, Claude Code가 조사하고 구현한다.</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="단계"><ol>
+<li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li>
+<li><a href="#card"><span class="num">1</span><span class="lbl">요구사항 카드</span></a></li>
+<li><a href="#levels"><span class="num">2</span><span class="lbl">난이도 레벨 L0~L3</span></a></li>
+<li><a href="#safety"><span class="num">3</span><span class="lbl">공통 안전 장치</span></a></li>
+<li><a href="#objects"><span class="num">4</span><span class="lbl">오브젝트별 방법</span></a></li>
+<li><a href="#prompt"><span class="num">5</span><span class="lbl">프롬프트 틀</span></a></li>
+<li><a href="#claudemd"><span class="num">6</span><span class="lbl">CLAUDE.md 블록</span></a></li>
+<li><a href="#trouble"><span class="num">7</span><span class="lbl">막혔던 지점 정리</span></a></li>
+</ol></nav>
+<main>
+
+<section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2>
+<ul class="pts">
+<li>시작은 항상 <b>요구사항 카드 → 레벨 판정</b>이다. 레벨이 절차의 무게를 정한다.</li>
+<li>직접 짜면 30분 안에 끝나는 일은 Claude Code를 쓰지 않는다. 조사가 필요한 일과 반복 작업에 쓴다.</li>
+<li>서버 쓰기는 <b>백업 → diff 승인 → 활성화 → 형이 직접 테스트</b> 순서를 지킨다.</li>
+</ul>
+<ol class="flow" aria-label="작업 흐름">
+<li><b>1. 카드 작성</b><span>목표/입출력/제약/완료 조건</span></li>
+<li><b>2. 레벨 판정</b><span>L0 / L1 / L2 / L3</span></li>
+<li><b>3. 계획 승인</b><span>L2 이상, 계획 1회</span></li>
+<li><b>4. diff 승인</b><span>백업 후 쓰기, 구문 체크</span></li>
+<li><b>5. 테스트와 이력</b><span>직접 실행, 이력 1회</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>레벨</th><th>한 줄 정의</th><th>계획서</th><th>이력</th></tr></thead><tbody>
+<tr><td>L0 스니펫</td><td>오브젝트 0개, 서버 쓰기 없음</td><td>없음</td><td>없음</td></tr>
+<tr><td>L1 소형</td><td>오브젝트 1~2개, 직접 30분 이내</td><td>생략</td><td>생략 또는 한 줄</td></tr>
+<tr><td>L2 중형</td><td>오브젝트 3~6개, 조사/시행착오 필요</td><td>1회</td><td>마지막 1회</td></tr>
+<tr><td>L3 대형</td><td>오브젝트 7개 이상, 되돌리기 어려움</td><td>단계별</td><td>단계별 또는 묶음</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="card" class="step"><span class="badge" aria-hidden="true">1</span><h2>요구사항 카드 (시작 전 5분)</h2>
+<ul class="pts">
+<li>이게 없으면 Claude Code가 추측하고, 추측이 쌓이면 시간이 늘어난다.</li>
+<li>한 단락이면 충분하다. <b>완료 조건</b>을 구체적으로 쓰는 게 핵심이다.</li>
+<li>시작 전에 <code>searchObject</code>로 비슷한 오브젝트가 이미 있는지 확인시킨다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">요구사항 카드</span><span class="cnote">복사해서 채워 쓴다</span><button type="button" class="copy" aria-label="요구사항 카드 복사">복사</button></figcaption>
+<pre><code>[목표]      무엇을 만드나 (한 문장)
+[입력/출력] 받는 것 / 내놓는 것
+[제약]      네이밍(yhl2609..., ZR_/ZA_/ZSRV_), strict(2), COMMIT 금지,
+            건드리면 안 되는 오브젝트
+[완료 조건] 이 상태면 끝 (예: 성공/실패/혼합 payload 3종 통과)
+[레벨]      L0 / L1 / L2 / L3</code></pre>
+</figure>
+</section>
+
+<section id="levels" class="step"><span class="badge" aria-hidden="true">2</span><h2>난이도 레벨 L0~L3</h2>
+<ul class="pts">
+<li>레벨은 오브젝트 수, 조사 필요 여부, 되돌리기 난이도로 정한다. 애매하면 한 단계 높게 잡는다.</li>
+<li>작업 중 커지면 레벨을 올리고 그 시점에 계획서를 받는다.</li>
+</ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>레벨</th><th>예시</th><th>절차</th><th>형의 역할</th><th>시간 감</th></tr></thead><tbody>
+<tr><td>L0 스니펫</td><td>정규식 한 줄, SQL 한 문장, 문법 확인</td><td>한 번 묻고 끝</td><td>복붙해서 확인</td><td>~5분</td></tr>
+<tr><td>L1 소형</td><td>payload JSON 생성, 간단 리포트, 필드 1~2개 추가</td><td>계획 생략, diff만 보고 승인</td><td>diff 검수</td><td>~30분</td></tr>
+<tr><td>L2 중형</td><td>기능 추가(오늘 composition), CDS 뷰 설계, 테이블+CDS 세트</td><td>계획 1회 → 승인 → diff 승인 → 테스트 → 이력 1회</td><td>설계 결정, 검수, 테스트</td><td>1~2시간</td></tr>
+<tr><td>L3 대형</td><td>수신 API 신규(AE+BDEF+BIMPL+로직 클래스+SD/SB), Event Mesh 실습</td><td>단계로 쪼개고 단계마다 승인과 테스트</td><td>설계 전체, 단계마다 활성화/테스트</td><td>반나절 이상</td></tr>
+</tbody></table></div>
+<h4>Claude Code를 쓸지 말지</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>상황</th><th>판단</th></tr></thead><tbody>
+<tr><td>직접 짜면 30분 안에 끝남</td><td>쓰지 않는다 (설명하는 시간이 더 걸린다)</td></tr>
+<tr><td>표준 클래스나 API를 찾아야 함</td><td>쓴다 (조사가 강점. 오늘 <code>CL_SBD_STRUCTURE_PERSIST</code> 사례)</td></tr>
+<tr><td>payload 대량 생성, 반복 보일러플레이트</td><td>쓴다 (반복 작업)</td></tr>
+<tr><td>설계 결정 자체 (키, 필드, 구조)</td><td>형이 결정한다. Claude Code는 초안만</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="safety" class="step"><span class="badge" aria-hidden="true">3</span><h2>공통 안전 장치 (모든 레벨)</h2>
+<ul class="pts">
+<li>서버 쓰기 전에 <b>백업</b>하고, <b>diff만 보고 승인</b>한다. 승인한 diff와 달라지면 다시 승인받는다.</li>
+<li>구문 체크 오류는 <b>보고만 하고 수정은 승인 후에</b>. 마지막 활성화와 테스트는 형이 직접 한다.</li>
+<li>권한 프롬프트는 읽고 1번만 누른다. auto mode와 "don't ask again"은 쓰지 않는다.</li>
+</ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>항목</th><th>규칙</th></tr></thead><tbody>
+<tr><td>거절할 도구</td><td><code>deleteObject</code>, <code>forceUnlock</code>, <code>transport*</code>, <code>runSnippet</code></td></tr>
+<tr><td>백업</td><td>쓰기 전에 활성 소스를 <code>docs/backup/&lt;이름&gt;.before.abap</code>으로 저장</td></tr>
+<tr><td>추측 금지</td><td>필드명은 AE/CDS 소스 기준. 실제 존재 확인된 이름만. 불확실하면 "검증 필요"로 표시</td></tr>
+<tr><td>LUW</td><td><code>COMMIT WORK</code> 직접 호출 금지, DB 쓰기는 saver</td></tr>
+<tr><td>접속 정보</td><td>비밀번호와 토큰은 프롬프트, 코드, 커밋에 넣지 않음 (환경변수 사용)</td></tr>
+<tr><td>중단</td><td>Esc 한 번. <b>Ctrl+C 두 번은 종료</b>다. 복사는 드래그(copyOnSelection)나 Ctrl+O</td></tr>
+<tr><td>비released API</td><td>연습용으로만. 운영 코드에는 쓰지 않는다</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="objects" class="step"><span class="badge" aria-hidden="true">4</span><h2>오브젝트별 시작 방법</h2>
+<ul class="pts">
+<li>테이블과 CDS는 <b>설계는 형, 초안은 Claude Code</b>. 키와 구조는 형이 먼저 정한다.</li>
+<li>CDS는 <b>IV → PV → (필요 시) MDE/AC</b> 순서. SD는 PV를 expose한다.</li>
+<li>L3는 단계로 쪼개고, 단계마다 활성화하고 테스트한 뒤 다음으로 넘어간다.</li>
+</ul>
+<div class="tblwrap"><table class="grid"><thead><tr><th>오브젝트</th><th>레벨</th><th>시작 방법</th></tr></thead><tbody>
+<tr><td>테이블 (DDIC)</td><td>L1~L2</td><td>키/필드/데이터 엘리먼트/통화 참조는 형이 결정. 기존 비슷한 테이블을 읽혀 <code>define table</code> 초안과 네이밍 점검</td></tr>
+<tr><td>CDS view</td><td>L2</td><td><code>@소스</code>를 지정하고 필드명은 소스 기준으로만 작성. 변환 Exit 필드는 IV에 raw, PV에서 변환</td></tr>
+<tr><td>프로그램/리포트</td><td>L1~L2</td><td>로직은 클래스, 프로그램은 호출과 표시만(얇게)</td></tr>
+<tr><td>RAP 수신 API 신규</td><td>L3</td><td>아래 6단계로 쪼갠다</td></tr>
+</tbody></table></div>
+<h4>RAP 수신 API 신규 (L3) 단계</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>#</th><th>단계</th><th>통과 기준</th></tr></thead><tbody>
+<tr><td>1</td><td>AE와 데이터 구조 설계 (형이 확정)</td><td>필드/타입/관계 합의</td></tr>
+<tr><td>2</td><td>로그 테이블과 CDS (IV → PV)</td><td>활성화, 데이터 미리보기</td></tr>
+<tr><td>3</td><td>BDEF (Unmanaged, <code>strict(2)</code>, <code>static action</code>)</td><td>활성화</td></tr>
+<tr><td>4</td><td>BIMPL(얇게)과 로직 클래스 (검증, <code>save_log</code>, 저장은 saver)</td><td>구문 체크, 활성화</td></tr>
+<tr><td>5</td><td>SD / SB</td><td>$metadata 확인</td></tr>
+<tr><td>6</td><td>Bruno payload (성공, 실패, 혼합)와 테스트</td><td>HTTP 200, <code>mtype</code> 확인, 로그 적재</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="prompt" class="step"><span class="badge" aria-hidden="true">5</span><h2>프롬프트 틀</h2>
+<ul class="pts">
+<li>목표, 맥락, 제약, 완료 조건을 한 번에 준다. 읽을 파일은 <code>@</code>로 명시한다.</li>
+<li>한 번에 크게 시키지 말고 분석 → 계획 → 구현 → 검증 순서로 쪼갠다.</li>
+<li>막히면 에러 메시지 전문과 직전에 한 작업을 같이 준다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">프롬프트 틀</span><button type="button" class="copy" aria-label="프롬프트 틀 복사">복사</button></figcaption>
+<pre><code>[목표]
+[읽을 파일] @ZR_... @ZA_...  (필드명 추정 금지, 소스 기준)
+[제약] 네이밍 yhl2609..., COMMIT 금지, 쓰기 전 diff 승인
+[완료 조건] (구체적으로)
+[검증] syntaxCheckCode 후 결과 보고
+[기타] 계획서는 한 번만, 쓰기 전에 *.before.abap 백업,
+       승인한 diff와 달라지면 다시 보여줄 것, 이력은 마지막에 1개만</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">조사 먼저 시키는 틀</span><span class="cnote">불확실한 기능에 사용</span><button type="button" class="copy" aria-label="조사 먼저 시키는 틀 복사">복사</button></figcaption>
+<pre><code>[조사] 10분 이내, 결과는 한 줄 보고. 이름은 추정하지 말고 실제 존재하는 것만 근거로.
+[분기]
+- 불가능하면: 코드 수정 없이 "불가, 이유 한 줄"만 보고하고 멈춰줘.
+- 가능하면: 호출 방법, 확실한 부분/"검증 필요" 부분, 실패 시 처리 방식을 보고하고
+  짧은 계획서를 한 번만 보여줘.</code></pre>
+</figure>
+</section>
+
+<section id="claudemd" class="step"><span class="badge" aria-hidden="true">6</span><h2>CLAUDE.md에 붙일 블록</h2>
+<ul class="pts">
+<li>프로젝트 루트의 CLAUDE.md 맨 아래에 붙이면 매번 설명하지 않아도 된다.</li>
+<li>기존에 있는 규칙(추측 금지, 단계별 승인, COMMIT 금지)과 겹치는 줄은 정리해서 넣는다.</li>
+<li>접속 정보가 든 설정 파일(<code>.mcp.json</code> 등)은 읽거나 출력하지 않는 규칙도 같이 둔다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">CLAUDE.md</span><span class="cnote">작업 규모별 절차</span><button type="button" class="copy" aria-label="CLAUDE.md 블록 복사">복사</button></figcaption>
+<pre><code>## 작업 규모별 절차
+- 시작 전에 요구사항 카드(목표/입출력/제약/완료 조건)가 없으면 먼저 물어본다.
+- 소형(오브젝트 1~2개): 계획서 생략, diff만 보여주고 승인받은 뒤 쓴다.
+- 중형(3~6개): 짧은 계획서 1회 → 승인 → diff 승인 → 쓰기. 이력 문서는 마지막에 1개만.
+- 대형(7개 이상): 단계로 쪼개고 단계마다 승인과 테스트. 다음 단계는 내 통과 신호 후에.
+- 불확실한 기능은 먼저 조사(10분 이내)하고 가능/불가를 한 줄로 보고한다. 불가면 멈춘다.
+
+## 공통 규칙
+- 서버 쓰기 전에 현재 활성 소스를 docs/backup/ 에 *.before.abap 으로 백업한다.
+- 승인받은 소스와 달라지는 수정은 한 줄이라도 쓰기 전에 다시 보여주고 승인받는다.
+- syntaxCheckCode 오류는 보고만 하고 수정은 승인 후에 한다.
+- deleteObject, forceUnlock, transport*, runSnippet 은 사용하지 않는다.
+- COMMIT WORK / BAPI_TRANSACTION_COMMIT 직접 호출 금지.
+- 필드명은 추측하지 말고 소스에서 확인한다. 불확실하면 "검증 필요"로 표시한다.
+- 접속 정보(.mcp.json 등)는 읽거나 출력하지 않는다.
+- 비released API는 연습용으로만 쓰고, 이력에 "운영 사용 금지"를 남긴다.</code></pre>
+</figure>
+</section>
+
+<section id="trouble" class="step"><span class="badge" aria-hidden="true">7</span><h2>막혔던 지점 정리 (11/13~11/15 실습)</h2>
+<div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody>
+<tr><td>Claude Code가 갑자기 종료됨</td><td>Ctrl+C 두 번</td><td>중단은 Esc 한 번. 복사는 드래그(<code>terminal.integrated.copyOnSelection</code>)나 Ctrl+O. 재개는 <code>claude --continue</code> (검증 필요)</td></tr>
+<tr><td>승인 없이 소스가 바뀜</td><td>Claude Code가 구문 경고를 스스로 수정</td><td>CLAUDE.md에 "달라지는 수정은 다시 승인" 규칙 추가</td></tr>
+<tr><td>프로그램이 비활성으로 남음</td><td>생성 후 활성화 누락</td><td><code>setObjectSource(activate=true)</code>로 한 번에 처리</td></tr>
+<tr><td><code>setTextElements</code> 락 에러 (423)</td><td>텍스트 요소 리소스 락</td><td>선택 텍스트는 SE38에서 수동 입력</td></tr>
+<tr><td><code>Field "VALUE" is unknown</code></td><td><code>VALUE STANDARD TABLE OF ... WITH EMPTY KEY( ... )</code> 사용</td><td>이름 있는 테이블 타입 선언 후 <code>VALUE tt_xxx( ... )</code></td></tr>
+<tr><td>EMPTY KEY 테이블 SORT 경고</td><td><code>SORT itab.</code></td><td><code>SORT itab BY table_line.</code></td></tr>
+<tr><td>RETURNING과 EXPORTING 동시 선언</td><td>RETURNING 메서드는 IMPORTING만 허용 (구문 오류 가능)</td><td>반환값도 EXPORTING으로 통일하고 호출부를 맞춤</td></tr>
+<tr><td>CDS 이름 칸에 프로그램 이름 입력</td><td>이름이 비슷해 혼동</td><td>"CDS entity ... not found (active)." 입력 검증 메시지로 정상 종료됨</td></tr>
+<tr><td>MCP로 데이터 미리보기 불가</td><td>정책으로 막혀 있음</td><td>ADT SQL 콘솔이나 SE16N으로 형이 직접 확인하고 결과를 전달</td></tr>
+<tr><td>계획서에 중복/과거 정보</td><td>긴 대화 이력 누적</td><td>요약을 주고 계획서를 다시 쓰게 하거나 새 세션에서 시작</td></tr>
+</tbody></table></div>
+</section>
+
+</main>
+</div>
+<footer>SAP RAP 프로젝트 · A4H 001 / ABAP02 · 패키지 $YHL2609_RAP20 · 2026-11-15</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
