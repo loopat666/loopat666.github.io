@@ -1,0 +1,387 @@
+---
+layout: post
+categories: [RAP]
+tags: [RAP]
+title: "이클립스 없이 ABAP 개발? ADT MCP 서버로 Claude Code 붙이는 법"
+description: "이번 글에서는 S/4HANA 2023 온프레미스 서버에서 직접 해본 과정을 정리했습니다. RFC destination 연결부터 MCP 서버 켜기, 토큰으로 Claude Code에 등록하기, 그리고 쓰기 툴을 매번 승인받게 하는 안전장치까지 다룹니다. 마지막에는 SPFLI 기반 CDS view entity를 새로 만들고 한 줄을 고치는 실습으로 마무리합니다."
+date: 2026-11-17 22:18:22 +0900
+---
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>ADT MCP + Claude Code 바이브 코딩 절차 (S/4HANA 2023)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+ --bg:#F5F7FA;--surface:#FFFFFF;--ink:#1B2433;--muted:#5A6678;--line:#DCE2EA;
+ --accent:#0F6E73;--accent-soft:#E3F2F2;--note:#FFF5D9;--note-line:#E7C766;
+ --code:#F2F4F8;--tk:#7B3FA0;--ts:#14764B;--tc:#7A8697;--tn:#1D4ED8;--ta:#B45309;--tkey:#0B5C9E;
+ --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ --mono:"IBM Plex Mono","D2Coding","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:break-word}
+pre,code,.fname{word-break:normal}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.08em .38em;border-radius:4px}
+header.hero{max-width:1120px;margin:0 auto;padding:56px 28px 28px}
+header.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:-.02em;font-weight:700}
+header.hero p{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.layout{max-width:1120px;margin:0 auto;padding:12px 28px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav.rail{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+nav.rail a{display:flex;gap:10px;align-items:baseline;padding:7px 0 7px 14px;margin-left:-2px;border-left:2px solid transparent;text-decoration:none;color:var(--muted);font-size:14.5px}
+nav.rail a:hover{color:var(--ink)}
+nav.rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:600}
+nav.rail .num{font-family:var(--mono);font-size:12.5px;min-width:1.2em}
+main{min-width:0}
+.step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px 28px 24px 28px;margin:0 0 22px}
+.step .badge{position:absolute;top:-1px;left:-1px;background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:14px;min-width:34px;height:34px;display:grid;place-items:center;border-radius:10px 0 10px 0}
+.step h2{margin:6px 0 12px 30px;font-size:21px;letter-spacing:-.01em}
+.step h4{margin:26px 0 8px;font-size:15px;color:var(--muted)}
+ul.pts{margin:0 0 20px;padding:14px 18px 14px 34px;background:var(--note);border:1px solid var(--note-line);border-radius:8px}
+ul.pts li{margin:3px 0;padding-left:2px}
+ul.pts li::marker{color:#B7860B}
+ol.flow{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+ol.flow li{position:relative;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;line-height:1.4}
+ol.flow li b{font-size:14.5px}
+ol.flow li span{color:var(--muted);font-size:13px}
+ol.flow li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:12px;border-top:2px solid var(--accent)}
+figure.code{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+figure.code figcaption{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#E9EDF3;border-bottom:1px solid var(--line);font-size:13px}
+.fname{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.cnote{color:var(--muted)}
+button.copy{margin-left:auto;font:inherit;font-size:12.5px;padding:3px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer}
+button.copy:hover{border-color:var(--accent);color:var(--accent)}
+button.copy:focus-visible,nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:14px 16px;overflow-x:auto;tab-size:2}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.6;white-space:pre}
+.tk{color:var(--tk);font-weight:500}.ts{color:var(--ts)}.tc{color:var(--tc);font-style:italic}.tn{color:var(--tn)}.ta{color:var(--ta)}.tkey{color:var(--tkey)}
+.tblwrap{overflow-x:auto;margin:0 0 6px}
+table.grid{border-collapse:collapse;width:100%;font-size:14.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+table.grid thead th{background:var(--accent-soft);color:#0B4F53;font-weight:600;border-bottom:1px solid #BFDCDD}
+table.grid tbody th{width:9em;font-weight:600;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:0 28px 48px;color:var(--muted);font-size:13.5px}
+@media (max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:18px;padding:8px 16px 60px}
+ header.hero{padding:36px 16px 16px}
+ nav.rail{position:static;max-height:none;overflow:visible}
+ nav.rail ol{display:flex;gap:6px;border-left:0;overflow-x:auto;padding-bottom:6px}
+ nav.rail a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0;white-space:nowrap;background:var(--surface)}
+ nav.rail a.on{border-color:var(--accent);background:var(--accent-soft)}
+ .step{padding:22px 16px 18px}
+ ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ ol.flow li:not(:last-child)::after{display:none}
+ footer{padding:0 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.rail,button.copy{display:none}.layout{display:block}.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<header class="hero">
+<h1>ADT MCP + Claude Code 바이브 코딩 절차</h1>
+<p>S/4HANA 2023 온프레미스 개발서버에 ADT for VS Code를 연결하고, 내장 ADT MCP 서버를 Claude Code에 붙여 CDS를 읽고, 만들고, 고치는 데까지 한 번에 정리했다. 형이 설계·승인하고 Claude Code가 구현하는 구조다.</p>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="개발 단계"><ol>
+<li><a href="#overview"><span class="num">0</span><span class="lbl">개요</span></a></li>
+<li><a href="#step1"><span class="num">1</span><span class="lbl">ADT for VS Code 연결</span></a></li>
+<li><a href="#step2"><span class="num">2</span><span class="lbl">ADT MCP 서버 켜기</span></a></li>
+<li><a href="#step3"><span class="num">3</span><span class="lbl">Claude Code에 등록</span></a></li>
+<li><a href="#step4"><span class="num">4</span><span class="lbl">안전장치 설정</span></a></li>
+<li><a href="#step5"><span class="num">5</span><span class="lbl">읽기 시험</span></a></li>
+<li><a href="#step6"><span class="num">6</span><span class="lbl">쓰기 1: CDS 신규 생성</span></a></li>
+<li><a href="#step7"><span class="num">7</span><span class="lbl">쓰기 2: 기존 소스 수정</span></a></li>
+<li><a href="#trouble"><span class="num">8</span><span class="lbl">막혔던 지점 정리</span></a></li>
+</ol></nav>
+<main>
+
+<section id="overview" class="step"><span class="badge" aria-hidden="true">0</span><h2>개요</h2>
+<ul class="pts">
+<li>목표는 반복 작업을 Claude Code에 맡기는 연습이다. 설계와 승인은 형이 하고, 구현은 Claude Code가 한다.</li>
+<li>연결 고리는 VS Code의 ADT 확장이 띄우는 MCP 서버(<code>localhost:2236</code>)다. Claude Code가 이 서버의 툴 34개를 쓴다.</li>
+<li>오늘의 순서는 연결 → MCP 켜기 → 등록 → 안전장치 → 읽기 → 신규 생성 → 기존 수정이다.</li>
+<li>S/4HANA 2023 연결은 실제로 성공했다(관찰). SAP 튜토리얼의 전제 버전은 2025 이상이라 공식 지원 여부는 확인하지 못했다.</li>
+</ul>
+<ol class="flow" aria-label="처리 흐름">
+<li><b>VS Code</b><span>ADT 확장 v1.2.1</span></li>
+<li><b>ADT MCP 서버</b><span>localhost:2236/mcp</span></li>
+<li><b>Claude Code</b><span>user scope 등록</span></li>
+<li><b>mcp__adt__*</b><span>툴 34개</span></li>
+<li><b>S/4 2023</b><span>패키지 ZZ2227_RAP20</span></li>
+</ol>
+<div class="tblwrap"><table class="grid"><thead><tr><th>종류</th><th>이름</th><th>역할</th></tr></thead><tbody>
+<tr><td>확장</td><td><code>ABAP Development Tools for VS Code</code></td><td>RFC destination으로 온프레미스에 연결</td></tr>
+<tr><td>설정</td><td><code>adt.mcpServer.enabled</code></td><td>내장 MCP 서버 켜기</td></tr>
+<tr><td>파일</td><td><code>CLAUDE.md</code></td><td>프로젝트 규칙(범위, 승인, 백업, 이력)</td></tr>
+<tr><td>파일</td><td><code>.claude/settings.json</code></td><td>쓰기 툴 승인(ask), 위험 툴 차단(deny)</td></tr>
+<tr><td>CDS</td><td><code>ZR_YHL2609_00030</code></td><td>SPFLI 기반 view entity (신규 생성 실습)</td></tr>
+<tr><td>폴더</td><td><code>docs/backup</code>, <code>docs/history</code></td><td>쓰기 전 백업, 단계별 이력</td></tr>
+</tbody></table></div></section>
+
+<section id="step1" class="step"><span class="badge" aria-hidden="true">1</span><h2>ADT for VS Code 연결</h2>
+<ul class="pts">
+<li>온프레미스는 RFC destination을 쓴다. SAP Logon 구성이 전제다.</li>
+<li>예전 ABAP FS 폴더와 섞이지 않게 <b>새 폴더</b>를 쓰고, 그 워크스페이스에서는 ABAP FS 확장을 비활성화했다.</li>
+<li>폴더에 "Disconnected … abap:/repotree-v1/…" 경고가 뜨면 destination의 로그온 정보(비밀번호)를 입력해야 연결된다.</li>
+<li>처음 증상의 원인이 ABAP FS 충돌인지 로그온 미입력인지는 분리해서 확인하지 못했다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">destinations.json</span><span class="cnote">구조 예시(값은 자리표시자)</span><button type="button" class="copy" aria-label="destinations.json 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"formatVersion"</span>: <span class="ts">"1.0"</span>,
+  <span class="tkey">"destinations"</span>: [
+    {
+      <span class="tkey">"id"</span>: <span class="ts">"S4H_200_&lt;USER&gt;_EN_ADT"</span>,
+      <span class="tkey">"protocol"</span>: <span class="ts">"rfc"</span>,
+      <span class="tkey">"properties"</span>: {
+        <span class="tkey">"systemId"</span>: <span class="ts">"S4H"</span>,
+        <span class="tkey">"ssoEnabled"</span>: <span class="ts">"false"</span>,
+        <span class="tkey">"applicationServer"</span>: <span class="ts">"&lt;app-server&gt;"</span>,
+        <span class="tkey">"systemNumber"</span>: <span class="ts">"00"</span>,
+        <span class="tkey">"client"</span>: <span class="ts">"200"</span>,
+        <span class="tkey">"language"</span>: <span class="ts">"EN"</span>,
+        <span class="tkey">"user"</span>: <span class="ts">"&lt;USER&gt;"</span>,
+        <span class="tkey">"sncType"</span>: <span class="ts">"0"</span>
+      }
+    }
+  ]
+}</code></pre>
+</figure>
+<ul class="pts">
+<li>이 파일에는 서버 주소와 사용자 ID가 들어 있다. 채팅 입력창에 자동 첨부되면 칩을 지우고, git에는 올리지 않는다.</li>
+</ul></section>
+
+<section id="step2" class="step"><span class="badge" aria-hidden="true">2</span><h2>ADT MCP 서버 켜기</h2>
+<ul class="pts">
+<li>설정에서 <code>adt.mcpServer.enabled</code>를 켠다(검색어 <code>adt mcp</code>). 포트는 <code>2236</code>, 엔드포인트는 <code>http://localhost:2236/mcp</code>다.</li>
+<li>서버는 시작할 때마다 <b>bearer 토큰</b>을 새로 만든다. 서버를 껐다 켜면 토큰이 바뀐다.</li>
+<li>Access Restrictions의 패키지 제한은 생성·수정에만 적용되고 읽기에는 적용되지 않는다. 그래서 읽기 범위는 CLAUDE.md로 따로 제한한다.</li>
+<li>VS Code MCP 로그에 "Connection state: Running"과 "Discovered 33 tools"가 보이면 정상이다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">서버 생존 확인</span><span class="cnote">PowerShell은 curl이 별칭이라 curl.exe를 쓴다</span><button type="button" class="copy" aria-label="서버 생존 확인 복사">복사</button></figcaption>
+<pre><code>curl.exe -i http://localhost:2236/mcp
+
+<span class="tc"># 정상 응답(토큰이 없어서 거부되는 게 맞다)</span>
+<span class="tc"># HTTP 400  Missing or invalid Authorization header</span></code></pre>
+</figure></section>
+
+<section id="step3" class="step"><span class="badge" aria-hidden="true">3</span><h2>Claude Code에 등록</h2>
+<ul class="pts">
+<li>토큰은 파일이나 프롬프트에 넣지 않고 <b>환경변수</b>로만 다룬다. 길이가 22인지 확인한 뒤 등록한다.</li>
+<li><code>--scope user</code>로 등록해야 VS Code 확장 세션에서 보였다. local scope로 등록했을 때는 패널과 세션에 adt가 안 보였다(원인은 작업 경로 불일치로 추정, 미검증).</li>
+<li>서버를 재시작하면 토큰이 바뀌므로 <code>claude mcp list</code>가 Connected인지 먼저 보고, 끊겼을 때만 다시 등록한다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">PowerShell</span><span class="cnote">토큰은 직접 붙여넣고 채팅에는 공유하지 않는다</span><button type="button" class="copy" aria-label="PowerShell 등록 명령 복사">복사</button></figcaption>
+<pre><code>claude mcp remove adt
+$env:ADT_MCP_TOKEN = <span class="ts">"&lt;실제 토큰 붙여넣기&gt;"</span>
+$env:ADT_MCP_TOKEN.Length   <span class="tc"># 22가 나와야 한다</span>
+claude mcp add --scope user --transport http adt http://localhost:2236/mcp --header <span class="ts">"Authorization: Bearer $env:ADT_MCP_TOKEN"</span>
+claude mcp list             <span class="tc"># adt Connected 확인</span></code></pre>
+</figure></section>
+
+<section id="step4" class="step"><span class="badge" aria-hidden="true">4</span><h2>안전장치 설정</h2>
+<ul class="pts">
+<li>CLAUDE.md는 어기면 막을 장치가 없다. 그래서 <code>.claude/settings.json</code>으로 <b>쓰기 툴은 매번 승인(ask), 위험 툴은 차단(deny)</b>한다.</li>
+<li>Edit File Tool 설정이 꺼져 있었는데도 <code>abap_object_edit_file</code>이 실제로 동작했다. 지금 쓰기를 막는 장치는 ask 규칙이다.</li>
+<li>저장 후 <code>/permissions</code>에서 "From shared project settings"로 ASK 6개, DENY 4개가 보이면 적용된 것이다.</li>
+<li>승인 창은 "allow once"로만 누른다. "always allow"는 누르지 않는다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">.claude/settings.json</span><span class="cnote">프로젝트 폴더 바로 아래 .claude 폴더</span><button type="button" class="copy" aria-label=".claude/settings.json 복사">복사</button></figcaption>
+<pre><code>{
+  <span class="tkey">"permissions"</span>: {
+    <span class="tkey">"deny"</span>: [
+      <span class="ts">"mcp__adt__abap_transport_create_request"</span>,
+      <span class="ts">"mcp__adt__abap_atc_exemption_request"</span>,
+      <span class="ts">"mcp__adt__abap_atc_ai_start_fix"</span>,
+      <span class="ts">"mcp__adt__abap_atc_ai_get_fix_result"</span>
+    ],
+    <span class="tkey">"ask"</span>: [
+      <span class="ts">"mcp__adt__abap_object_create"</span>,
+      <span class="ts">"mcp__adt__abap_object_edit_file"</span>,
+      <span class="ts">"mcp__adt__abap_object_activate"</span>,
+      <span class="ts">"mcp__adt__abap_object_run_action"</span>,
+      <span class="ts">"mcp__adt__abap_atc_quickfixes_apply"</span>,
+      <span class="ts">"mcp__adt__abap_objects_generator_run"</span>
+    ]
+  }
+}</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">CLAUDE.md</span><span class="cnote">초안. 형 폴더의 실제 내용과 맞춰서 사용</span><button type="button" class="copy" aria-label="CLAUDE.md 복사">복사</button></figcaption>
+<pre><code># 프로젝트 맥락
+- S/4HANA 2023 온프레미스 개발서버, ADT for VS Code(1.2.1)의 ADT MCP 서버(`adt`) 사용.
+- 대상 패키지: ZZ2227_RAP20. 사용자는 17년차 ABAP 개발자. ABAP 기본 설명은 생략.
+- 네이밍: yhl2609..., ZR_/ZA_/ZSRV_.
+- 기본 destination은 `S4H_200_S2227_EN_ADT`. 다른 destination은 사용하지 않는다.
+- 기본 트랜스포트는 `S4HK904918`. 다른 TR은 사용하지 않는다.
+
+# 범위 제한
+- 읽기와 쓰기 모두 ZZ2227_RAP20 안의 오브젝트만 대상으로 한다. 다른 패키지는 내가 요청하기 전에는 읽지 않는다.
+- ABAP 작업 중 Gmail, Drive, Calendar, Notion 같은 외부 커넥터는 사용하지 않는다.
+
+# 최우선 규칙
+- 추측 금지. 필드명, API, 툴 이름을 모르면 먼저 확인하고, 불확실하면 "검증 필요"로 표시한다.
+- 순서는 분석 → 계획 → 승인 → 구현 → 검증. 내 승인 없이 다음 단계로 가지 않는다.
+- 생성/수정/활성화는 diff를 먼저 보여주고 승인받은 뒤에만 실행한다. 승인한 내용과 달라지면 다시 승인받는다.
+- 쓰기 전에 현재 소스를 docs/backup/&lt;이름&gt;.before.abap 으로 백업한다.
+- 삭제, 전송(transport) 관련 툴은 사용하지 않는다.
+- COMMIT WORK 직접 호출 금지. DB 쓰기는 saver에서.
+- 접속 정보와 토큰은 읽거나 출력하거나 기록하지 않는다.
+
+# 이력
+- 작업 단계마다 docs/history/날짜_오브젝트명_순번_단계.md 를 만든다. 기존 파일은 덮어쓰지 않는다.
+- 내용: 목표, 나와의 질문/답변, 결정과 이유, 검증 필요 항목, 변경한 오브젝트와 활성화 결과, 에러와 해결, 다음 단계.</code></pre>
+</figure></section>
+
+<section id="step5" class="step"><span class="badge" aria-hidden="true">5</span><h2>읽기 시험</h2>
+<ul class="pts">
+<li>검색·읽기 툴은 <code>destination</code>이 필수다. 모르면 추측하지 말고 <code>abap_destination_list</code>를 한 번 허용해서 목록을 받는다.</li>
+<li>목록이 두 개(<code>_ABAP</code>, <code>_ADT</code>)로 나와서 Claude가 멈추고 물었다. 형이 <code>_ADT</code>를 골랐다.</li>
+<li>결과로 <code>ZR_YHL2609_00005</code>의 구조와 확인할 점 4가지를 요약받았다. 쓰기 툴은 쓰지 않았다.</li>
+<li><code>destinations.json</code>에서 <code>_ABAP</code>를 지운 뒤에도 목록이 두 개로 나왔다. 서버가 시작 시점의 목록을 들고 있는 것으로 의심하지만 확인하지 못했다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">읽기 시험 프롬프트</span><span class="cnote">목표 + 범위 + 금지 + 에러 처리를 한 번에</span><button type="button" class="copy" aria-label="읽기 시험 프롬프트 복사">복사</button></figcaption>
+<pre><code>destination은 `S4H_200_S2227_EN_ADT`를 써. 이걸로 `abap_repository_search_object`(packages=ZZ2227_RAP20, 타입 DDLS)로
+`ZR_YHL2609_00005`를 찾고 `abap_object_read_file`로 읽어서 요약해줘.
+읽기 툴만 쓰고, 에러가 나면 다른 destination으로 넘어가지 말고 에러 메시지를 그대로 보여줘.</code></pre>
+</figure></section>
+
+<section id="step6" class="step"><span class="badge" aria-hidden="true">6</span><h2>쓰기 1: CDS 신규 생성</h2>
+<ul class="pts">
+<li>새 오브젝트라 기존 소스를 건드리지 않는 안전한 첫 쓰기다. 순서는 계획 → validate → create → 템플릿 읽기 → edit_file → check → activate다.</li>
+<li>필드명은 추측하지 않고 SPFLI 테이블 정의를 읽어서 정했다. <code>distance</code>는 단위 필드(<code>distid</code>)와 연결하는 annotation을 붙였다.</li>
+<li><code>create</code> 직후에는 필드명을 CamelCase로 바꾼 기본 템플릿이 생긴다. 확정 소스로 바꾸는 diff를 승인한 뒤 <code>edit_file</code>을 실행했다.</li>
+<li>모든 쓰기 단계에서 승인 창이 떴고, activate는 따로 승인했다. 이클립스에서 생성 결과도 직접 확인했다.</li>
+</ul>
+<h4>1. 계획 프롬프트 (쓰기 금지)</h4>
+<figure class="code">
+<figcaption><span class="fname">계획 프롬프트</span><button type="button" class="copy" aria-label="계획 프롬프트 복사">복사</button></figcaption>
+<pre><code>SPFLI 테이블을 소스로 하는 CDS view entity를 새로 만들 거야. 지금은 **계획만** 세워줘.
+쓰기 툴(`create`, `edit_file`, `activate`)은 절대 호출하지 마.
+
+- 이름: `ZR_YHL2609_00030` (패키지 `ZZ2227_RAP20`, destination `S4H_200_S2227_EN_ADT`)
+- 먼저 `abap_repository_search_object`로 같은 이름이 이미 있는지 확인해줘.
+- SPFLI의 필드명은 추측하지 말고, 테이블 정의를 `abap_object_read_file`로 읽어서 그 기준으로 써줘.
+- 키는 CARRID, CONNID. 거리(DISTANCE)는 단위 필드와 연결되는 semantics annotation이 필요한지 판단해서 알려줘.
+- 결과물: ① 이름 중복 여부 ② 필드 목록과 매핑 ③ CDS 소스 전문(초안)
+  ④ `abap_object_create`에 필요한 파라미터 ⑤ 검증 필요 항목
+- 내가 승인하기 전에는 아무것도 만들지 마.</code></pre>
+</figure>
+<h4>2. create 파라미터 (validate 통과 후)</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>파라미터</th><th>값</th></tr></thead><tbody>
+<tr><td><code>objectType</code></td><td><code>DDLS/DF</code></td></tr>
+<tr><td><code>objectContent</code></td><td><code>{"packageName":"ZZ2227_RAP20","name":"ZR_YHL2609_00030","description":"Flight Schedule","referencedObject":"SPFLI"}</code></td></tr>
+<tr><td><code>transportRequestNumber</code></td><td><code>S4HK904918</code></td></tr>
+</tbody></table></div>
+<h4>3. 확정 소스 (최종 활성 버전)</h4>
+<figure class="code">
+<figcaption><span class="fname">ZR_YHL2609_00030.ddls.asddls</span><span class="cnote">7번 단계의 cast 수정까지 반영된 최종본</span><button type="button" class="copy" aria-label="ZR_YHL2609_00030 소스 복사">복사</button></figcaption>
+<pre><code><span class="ta">@AbapCatalog.viewEnhancementCategory</span>: [#NONE]
+<span class="ta">@AccessControl.authorizationCheck</span>: #NOT_REQUIRED
+<span class="ta">@EndUserText.label</span>: <span class="ts">'Flight Schedule'</span>
+<span class="ta">@Metadata.ignorePropagatedAnnotations</span>: <span class="tk">true</span>
+<span class="tk">define</span> <span class="tk">view</span> <span class="tk">entity</span> ZR_YHL2609_00030
+  <span class="tk">as</span> <span class="tk">select</span> <span class="tk">from</span> spfli
+{
+  <span class="tk">key</span> carrid    <span class="tk">as</span> AirlineID,
+  <span class="tk">key</span> connid    <span class="tk">as</span> ConnectionID,
+      countryfr <span class="tk">as</span> DepartureCountry,
+      cityfrom  <span class="tk">as</span> DepartureCity,
+      airpfrom  <span class="tk">as</span> DepartureAirport,
+      countryto <span class="tk">as</span> DestinationCountry,
+      cityto    <span class="tk">as</span> DestinationCity,
+      airpto    <span class="tk">as</span> DestinationAirport,
+      <span class="tk">cast</span>( fltime <span class="tk">as</span> abap.int4 ) <span class="tk">as</span> FlightTime,
+      deptime   <span class="tk">as</span> DepartureTime,
+      arrtime   <span class="tk">as</span> ArrivalTime,
+      <span class="ta">@Semantics.quantity.unitOfMeasure</span>: <span class="ts">'DistanceUnit'</span>
+      distance  <span class="tk">as</span> Distance,
+      distid    <span class="tk">as</span> DistanceUnit,
+      fltype    <span class="tk">as</span> FlightType,
+      period    <span class="tk">as</span> Period
+}</code></pre>
+</figure>
+<h4>4. 단계별 결과</h4>
+<div class="tblwrap"><table class="grid"><thead><tr><th>단계</th><th>툴</th><th>결과</th></tr></thead><tbody>
+<tr><td>이름 검색</td><td><code>abap_repository_search_object</code></td><td>0건(중복 없음)</td></tr>
+<tr><td>검증</td><td><code>abap_object_validate_creation</code></td><td>"Data Definition validated successfully"</td></tr>
+<tr><td>생성</td><td><code>abap_object_create</code></td><td>"Data Definition created successfully" (기본 템플릿 22줄)</td></tr>
+<tr><td>소스 반영</td><td><code>abap_object_edit_file</code></td><td>"Edit successful." (백업은 <code>docs/backup/ZR_YHL2609_00030.before.abap</code>)</td></tr>
+<tr><td>검사</td><td><code>abap_object_check</code></td><td>"Check successful"</td></tr>
+<tr><td>활성화</td><td><code>abap_object_activate</code></td><td>별도 승인 후 실행. 이클립스에서 결과 확인</td></tr>
+</tbody></table></div></section>
+
+<section id="step7" class="step"><span class="badge" aria-hidden="true">7</span><h2>쓰기 2: 기존 소스 수정</h2>
+<ul class="pts">
+<li>필드 한 줄 수정은 계획 단계를 건너뛰었다. 대신 <b>현재 소스 읽기 → 새 이름으로 백업 → diff 표시 → edit_file → 재읽기 비교 → check</b>를 한 프롬프트에 묶고, <code>activate</code>는 따로 승인했다.</li>
+<li>백업 파일은 <code>before2</code>처럼 다른 이름으로 남긴다. 기존 파일을 덮어쓰지 않는다는 규칙 때문이다.</li>
+<li>결과는 16번째 줄 한 줄만 바뀌었고, check와 activate 모두 통과했다. 이력은 <code>docs/history/2026-11-17_ZR_YHL2609_00030_04_수정.md</code>에 남았다.</li>
+<li>검증 필요: <code>fltime</code>이 원래 INT4라면 이 cast는 실제로 아무것도 바꾸지 않는다. 기본 타입으로 cast하면 데이터 요소(라벨 등) 연결이 끊길 수 있다.</li>
+</ul>
+<figure class="code">
+<figcaption><span class="fname">수정 프롬프트</span><span class="cnote">계획 단계를 생략한 간이 버전</span><button type="button" class="copy" aria-label="수정 프롬프트 복사">복사</button></figcaption>
+<pre><code>`ZR_YHL2609_00030`의 `fltime`을 `cast( fltime as abap.int4 ) as FlightTime`으로 바꿔줘. 다른 줄은 건드리지 마.
+
+순서: ① `abap_object_read_file`로 현재 소스 읽기
+② `docs/backup/ZR_YHL2609_00030.before2.abap`으로 백업(기존 파일은 덮어쓰지 마)
+③ 변경 diff를 채팅에 먼저 보여주고 `edit_file` 호출
+④ 반영된 소스 다시 읽어서 비교 ⑤ `check`
+여기서 멈춰. `activate`는 내가 따로 승인할게.</code></pre>
+</figure>
+<figure class="code">
+<figcaption><span class="fname">diff</span><span class="cnote">변경은 이 한 줄뿐</span><button type="button" class="copy" aria-label="diff 복사">복사</button></figcaption>
+<pre><code>-      fltime    as FlightTime,
++      cast( fltime as abap.int4 ) as FlightTime,</code></pre>
+</figure></section>
+
+<section id="trouble" class="step"><span class="badge" aria-hidden="true">8</span><h2>막혔던 지점 정리</h2>
+<div class="tblwrap"><table class="grid"><thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead><tbody>
+<tr><td>폴더에 "Disconnected … abap:/repotree-v1/…"</td><td>destination 로그온 미입력 또는 ABAP FS와 같은 폴더 사용(둘 중 무엇인지는 미분리)</td><td>새 폴더 + ABAP FS 워크스페이스 비활성 + destination 로그온 정보 입력</td></tr>
+<tr><td>ADT MCP Server가 Stopped / Error</td><td>서버 시작 실패(원인 미확정)</td><td>Reload Window 또는 설정 껐다 켜기 후 로그에서 "Running / Discovered 33 tools" 확인</td></tr>
+<tr><td>PowerShell에서 <code>curl</code>이 Uri를 묻는다</td><td><code>curl</code>이 Invoke-WebRequest 별칭</td><td><code>curl.exe</code>를 쓴다</td></tr>
+<tr><td>HTTP 400 "Missing or invalid Authorization header"</td><td>bearer 토큰 없이 호출</td><td>서버는 살아 있다는 신호. 토큰을 넣어 Claude Code에 등록</td></tr>
+<tr><td>스크린샷이나 채팅에 토큰 노출</td><td>토큰이 화면에 보임</td><td>서버를 껐다 켜서 토큰 교체 후 재등록. 토큰은 공유하지 않는다</td></tr>
+<tr><td>등록된 MCP 값이 <code>&lt;붙여넣기&gt;</code> 글자 그대로</td><td>플레이스홀더를 그대로 실행</td><td><code>claude mcp remove adt</code> 후 실제 토큰으로 재등록. <code>Length</code>가 22인지 확인</td></tr>
+<tr><td>Claude Code 패널과 세션에 adt가 안 보임</td><td>local scope 등록(작업 경로 불일치로 추정, 미검증)</td><td><code>--scope user</code>로 다시 등록</td></tr>
+<tr><td>세션이 "툴 37개"라고 말함</td><td>실제로 나열된 이름은 34개</td><td>이름을 직접 세어 확인. 개수 보고를 그대로 믿지 않는다</td></tr>
+<tr><td>읽기 툴이 destination을 몰라 멈춤</td><td><code>destination</code> 파라미터 필수</td><td><code>abap_destination_list</code>를 한 번만 허용해서 ID 확인, 이후 CLAUDE.md에 고정</td></tr>
+<tr><td>destination 목록이 두 개로 나옴</td><td>json에서 지운 뒤에도 서버가 이전 목록을 유지하는 것으로 의심(미검증)</td><td>사용할 destination을 직접 지정. 정리는 Reload 뒤 목록 개수로 확인</td></tr>
+<tr><td>Edit File Tool 설정이 꺼져 있는데 edit_file이 동작</td><td>설정과 툴 노출 사이의 관계 미확인</td><td>settings.json의 ask 규칙을 유일한 안전장치로 보고 유지</td></tr>
+<tr><td>이력 파일을 매번 만들 때의 중복</td><td>"기존 파일은 덮어쓰지 않는다" 규칙</td><td>단계마다 순번을 올리고, 수정과 활성화 결과는 한 파일에 같이 기록</td></tr>
+</tbody></table></div></section>
+
+</main>
+</div>
+<footer>패키지 ZZ2227_RAP20 · S/4HANA 2023 온프레미스 · 작성일 2026-11-17 · 미검증 항목은 본문에 "검증 필요" 또는 "미검증"으로 표시</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var t=b.closest('figure').querySelector('pre').innerText;
+    var done=function(){var o=b.textContent;b.textContent='복사됨';setTimeout(function(){b.textContent=o},1400)};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done)}
+    else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(a)}
+  });
+});
+var links=document.querySelectorAll('nav.rail a');
+var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){links.forEach(function(a){a.classList.remove('on')});map[e.target.id].classList.add('on')}
+  })},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.step').forEach(function(s){io.observe(s)});
+}
+</script>
+</body>
+</html>
